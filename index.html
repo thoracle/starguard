@@ -979,13 +979,17 @@ function mapLayout() {
 const SUBS = [null, 'W', 'S', 'E'], SUB_NAME = { W: 'WEAPON', S: 'SHIELD', E: 'ENGINE' };
 const SUB_HP = { F: 1, S: 2, C: 5 };       // hits each subsystem takes, by ship class
 const BASE_T = { base: true };             // stand-in target object for the station in this sector
+const SCOPE_TILT = 0.45;                   // how far the scope's turntable view looks down on the model (rad)
 function wireOf(proto) {                   // flatten a model's edge lines into model-space segments for the 2D scope
-  proto.updateMatrixWorld(true); const seg = []; let rad = 0;
+  proto.updateMatrixWorld(true); const seg = []; let rad = 0, rh = 0, rv = 0;
   proto.traverse(n => {
     if (!n.isLineSegments) return; const a = n.geometry.attributes.position;
-    for (let i = 0; i < a.count; i++) { const v = V().fromBufferAttribute(a, i).applyMatrix4(n.matrixWorld); seg.push(v); rad = Math.max(rad, v.length()); }
+    for (let i = 0; i < a.count; i++) {
+      const v = V().fromBufferAttribute(a, i).applyMatrix4(n.matrixWorld), h = Math.hypot(v.x, v.z); seg.push(v);
+      rad = Math.max(rad, v.length()); rh = Math.max(rh, h); rv = Math.max(rv, Math.abs(v.y) * Math.cos(SCOPE_TILT) + h * Math.sin(SCOPE_TILT));
+    }
   });
-  return { seg, rad };
+  return { seg, rad, rh, rv };            // rh, rv: the widest and tallest the model ever gets on the scope as it turns
 }
 const WIRE = { F: wireOf(ET.F.proto), S: wireOf(ET.S.proto), C: wireOf(ET.C.proto), B: wireOf(mkBase()) };
 function pickAt(x, y) {                    // which target, if any, is under this point on the glass
@@ -1031,8 +1035,9 @@ function drawTarget(cx, cy, r) {           // takes the radar's place while some
   const x = cx - r, y = cy - r, w = 2 * r, wh = w - (isBase ? 26 : SUB_H), top = isBase ? 0 : 13;   // ships: readout line on top, arrow buttons below
   ctx.fillStyle = 'rgba(0,12,4,.92)'; ctx.fillRect(x, y, w, w); ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.strokeRect(x, y, w, w);
   // turntable view, orthographic, tilted so you see the top
-  const a = S.time * 0.8, ca = Math.cos(a), sa = Math.sin(a), ct = Math.cos(0.45), st = Math.sin(0.45);
-  const k = (Math.min(w, wh - top) / 2 - 4) / wire.rad, oy = y + top + (wh - top) / 2;
+  const a = S.time * 0.8, ca = Math.cos(a), sa = Math.sin(a), ct = Math.cos(SCOPE_TILT), st = Math.sin(SCOPE_TILT);
+  // scale to fill the scope: as wide as it will go, limited by how tall the model gets when it turns (the readout line may overlap the very top)
+  const k = Math.min((w / 2 - 4) / wire.rh, ((wh - top * 0.4) / 2 - 3) / wire.rv), oy = y + top * 0.4 + (wh - top * 0.4) / 2;
   const P = v => { const X = v.x * ca + v.z * sa, Z = -v.x * sa + v.z * ca; return [cx + X * k, oy - (v.y * ct - Z * st) * k]; };
   ctx.save(); ctx.beginPath(); ctx.rect(x + 1, y + 1, w - 2, wh - 2); ctx.clip();
   ctx.strokeStyle = CG; ctx.lineWidth = 1; ctx.beginPath();
@@ -1054,6 +1059,7 @@ function drawTarget(cx, cy, r) {           // takes the radar's place while some
     text(curBase ? `HULL ${Math.ceil(curBase.hp)}%` : '', cx, y + wh + 22, 9, 'center', curBase && curBase.hp < 35 ? CR : CG);
   } else {
     const s = SUBS[S.subI], h = s ? t.sub[s] / t.subMax : Math.max(0, t.hp) / t.def.hp;
+    ctx.fillStyle = 'rgba(0,12,4,.7)'; ctx.fillRect(x + 1, y + 1, w - 2, 13);   // keep the readout legible over the larger wireframe
     text(s ? SUB_NAME[s] : 'HULL', x + 5, y + 11, 9, 'left', '#fff');
     text(h <= 0 ? 'OUT' : Math.round(h * 100) + '%', x + w - 5, y + 11, 9, 'right', tone(h));
   }
