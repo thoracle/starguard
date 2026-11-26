@@ -1,0 +1,4 @@
+.venv/
+scores.json
+scores.json.tmp
+__pycache__/
