@@ -14,7 +14,7 @@
   --g:#39ff6a; --gd:#1c7a38; --r:#ff4a3a;
   --esl:env(safe-area-inset-left,0px); --esr:env(safe-area-inset-right,0px);
   --est:env(safe-area-inset-top,0px);  --esb:env(safe-area-inset-bottom,0px);
-  --sl:var(--esl); --sr:var(--esr); --st:var(--est); --sb:var(--esb); --tk:28px; --cl:264px; --cr:580px; --bw:58px;   /* --sl..--sb, --tk, --cl are overwritten from JS in resize() */
+  --sl:var(--esl); --sr:var(--esr); --st:var(--est); --sb:var(--esb); --tk:28px; --cl:264px; --cr:580px; --bw:58px; --bx:500px;   /* --sl..--sb, --tk, --cl are overwritten from JS in resize() */
 }
 *{box-sizing:border-box;touch-action:none}
 input{touch-action:manipulation}
@@ -60,8 +60,9 @@ body[data-mode=map] .mo{display:flex}
 #bBrake{bottom:calc(var(--sb) + var(--tk) + 12px);border-radius:3px 3px 12px 12px}
 #bWpn{width:56px;height:110px;right:calc(var(--sr) + 186px);bottom:calc(var(--sb) + var(--tk) + 12px);border-radius:8px;font-size:11px;letter-spacing:0;gap:6px}
 #bWpn .am{font-size:16px;color:#fff}
-#bMap{width:var(--bw);height:78px;left:calc(var(--cr) - 8px - var(--bw));bottom:calc(var(--sb) + var(--tk) + 13px);border-radius:8px;font-size:12px}
-#bView{width:var(--bw);height:78px;left:calc(var(--cl) + 8px);bottom:calc(var(--sb) + var(--tk) + 13px);border-radius:8px;font-size:12px;gap:6px}
+#bMap{width:var(--bw);height:36px;left:var(--bx);bottom:calc(var(--sb) + var(--tk) + 13px);border-radius:7px;font-size:12px}
+#bView{width:var(--bw);height:36px;left:var(--bx);bottom:calc(var(--sb) + var(--tk) + 55px);border-radius:7px;font-size:11px;gap:1px}
+#bView small{font-size:7px}
 #bPause{width:38px;height:34px;right:calc(var(--sr) + 10px);top:calc(var(--st) + 8px);border-radius:6px;font-size:12px;opacity:.6;box-shadow:none}
 #bWarp{width:128px;height:62px;right:calc(var(--sr) + 12px);bottom:calc(var(--sb) + 14px);border-radius:8px;font-size:18px}
 #bBack{width:128px;height:44px;right:calc(var(--sr) + 12px);bottom:calc(var(--sb) + 86px);border-radius:8px}
@@ -225,7 +226,7 @@ function resize() {
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   SAFE = readSafe();
   for (const k of ['l', 'r', 't', 'b']) document.documentElement.style.setProperty('--s' + k, SAFE[k] + 'px');
-  document.documentElement.style.setProperty('--cl', dash().cl + 'px'); document.documentElement.style.setProperty('--cr', dash().cr + 'px'); document.documentElement.style.setProperty('--bw', dash().bw + 'px');
+  document.documentElement.style.setProperty('--cl', dash().cl + 'px'); document.documentElement.style.setProperty('--cr', dash().cr + 'px'); document.documentElement.style.setProperty('--bw', dash().bw + 'px'); document.documentElement.style.setProperty('--bx', dash().bx + 'px');
   camera.setViewOffset(W, H, 0, H / 2 - dash().yC / 2, W, H);   // aim point = centre of the canopy glass, not of the screen
   stickHome();
 }
@@ -1022,10 +1023,10 @@ function cycleTarget() {                   // keyboard: step through hostiles ne
 const SUB_H = 32;                          // height of the previous/next subsystem buttons along the bottom of the scope
 let tgtKey = '';
 function targetUI() {                      // show and place the scope's touch buttons: clear (the wireframe itself), previous and next subsystem
-  const show = S.mode === 'flight' && !!S.target && !(S.comm && S.comm.t > 0), shipT = show && !S.target.base;
+  const show = S.mode === 'flight' && !!S.target, shipT = show && !S.target.base;
   $('bSubP').hidden = $('bSubN').hidden = !shipT; $('bTgt').hidden = !show;
   if (!show) return;
-  const D = dash(), r = D.r + 2, x = D.cx - r, y = D.yC + 55 - r, w = 2 * r, key = [x, y, w].join();
+  const D = dash(), r = D.sq / 2, x = D.scx - r, y = D.yC + 55 - r, w = 2 * r, key = [x, y, w].join();
   if (key === tgtKey) return; tgtKey = key;
   const put = (id, l, t, ww, hh) => Object.assign($(id).style, { left: l + 'px', top: t + 'px', width: ww + 'px', height: hh + 'px' });
   put('bSubP', x, y + w - SUB_H, w / 2, SUB_H); put('bSubN', x + w / 2, y + w - SUB_H, w / 2, SUB_H); put('bTgt', x, y, w, w - SUB_H);   // the two arrows share the full width of the scope
@@ -1217,7 +1218,19 @@ const face = (() => {                      // raw WebGL: one quad, one program; 
     return { g, u };
   } catch (e) { console.warn('comm face shader unavailable:', e.message); return null; }
 })();
-function drawComm(cx, cy, r) {             // takes the radar's place on the centre console
+function drawCommPanel(cx, cy, r) {        // the comm display: a caller's head while they speak, otherwise a standby screen
+  if (S.comm && S.comm.t > 0) return drawComm(cx, cy, r);
+  const x = cx - r, y = cy - r, w = r * 2, out = !S.sys.COM, c = out ? CR : CGD;
+  ctx.fillStyle = 'rgba(0,12,4,.92)'; ctx.fillRect(x, y, w, w);
+  ctx.strokeStyle = c; ctx.lineWidth = 1; ctx.beginPath();
+  for (let ly = y + 5; ly < y + w - 2; ly += 4) { ctx.moveTo(x + 3, ly); ctx.lineTo(x + w - 3, ly); }   // idle scanlines
+  ctx.globalAlpha = 0.3; ctx.stroke(); ctx.globalAlpha = 1;
+  ctx.lineWidth = 1.5; ctx.strokeRect(x, y, w, w);
+  const waiting = S.comm && !out;          // someone is on the line, waiting for an alert to clear
+  text(out ? 'COMMS' : 'COMM', cx, cy - 1, 9, 'center', out ? CR : waiting && (S.time * 4 | 0) % 2 ? CG : CGD);
+  text(out ? 'OUT' : waiting ? 'INCOMING' : 'STANDBY', cx, cy + 10, 7, 'center');
+}
+function drawComm(cx, cy, r) {             // a caller's head on the comm display
   const c = S.comm, sp = c.sp, col = sp.hostile ? CR : CG, x = cx - r, y = cy - r, w = r * 2;
   if (face) {
     const { g, u } = face;
@@ -1269,8 +1282,10 @@ function marker(pos, color, r, label, locked, targeted) {   // bracket when visi
 function dash() {                       // one-piece dashboard geometry
   const sb = SAFE.b, sw = Math.max(SAFE.l + 218, SAFE.r + 250), cx = W / 2, yT = H - sb - TICK;
   const cl = Math.max(sw + 14, cx - 190), cr = W - cl;
-  const room = cr - cl - 28, bw = Math.max(30, Math.min(58, Math.floor(room * 0.36))), r = Math.max(14, Math.min(42, (room - 2 * bw) / 2));   // button width and scope radius that fit
-  return { sb, sw, cx, cl, cr, yT, bw, r, yS: yT - 142, yC: yT - 106, ySill: yT - 24, gap: cl - sw > 44 };
+  // centre console holds three things side by side: the comm display, the scope (radar or target), and a VIEW/SCAN button column
+  const room = cr - cl - 16, bw = Math.max(34, Math.min(58, Math.floor(room * 0.27))), sq = Math.max(28, Math.min(88, Math.floor((room - bw - 12) / 2)));
+  const x0 = cx - (2 * sq + bw + 12) / 2, hx = x0 + sq / 2, scx = x0 + sq + 6 + sq / 2, bx = x0 + 2 * sq + 12;   // centres of the two displays, left edge of the buttons
+  return { sb, sw, cx, cl, cr, yT, bw, sq, hx, scx, bx, yS: yT - 142, yC: yT - 106, ySill: yT - 24, gap: cl - sw > 44 };
 }
 function icon(kind, x, y) {                // 14px vector glyphs under the status bars; uses the current stroke colour
   ctx.save(); ctx.translate(x, y); ctx.lineWidth = 1.4; ctx.lineJoin = 'round'; ctx.beginPath();
@@ -1319,8 +1334,10 @@ function drawCockpit() {
   ctx.shadowBlur = 3; ctx.shadowColor = CG;
 
   // --- centre console: SCAN key (DOM) on the left, radar scope
-  const r = D.r, ry = yC + 55;
-  if (S.comm && S.comm.t > 0) drawComm(cx, ry, r + 2); else if (S.target) drawTarget(cx, ry, r + 2); else {
+  const half = D.sq / 2, r = half - 2, ry = yC + 55;
+  drawCommPanel(D.hx, ry, half);                         // the comm display sits beside the scope instead of replacing it
+  if (S.target) drawTarget(D.scx, ry, half); else {
+  const cx = D.scx;                                      // the radar is drawn around the scope's centre
   ctx.strokeStyle = CG; ctx.beginPath(); ctx.arc(cx, ry, r, 0, 7); ctx.stroke();
   ctx.strokeStyle = CGD; ctx.beginPath(); ctx.arc(cx, ry, r / 2, 0, 7);
   ctx.moveTo(cx - r, ry); ctx.lineTo(cx + r, ry); ctx.moveTo(cx, ry - r); ctx.lineTo(cx, ry + r); ctx.stroke();
@@ -1361,7 +1378,7 @@ function drawCockpit() {
     ctx.strokeStyle = CGD; ctx.beginPath();
     for (const [bx, by, br] of [[R - 59, yT - 67, 45], [L + 74, yT - 68, 58]]) { ctx.moveTo(bx + br, by); ctx.arc(bx, by, br, 0, 7); }
     ctx.rect(R - 178, yT - 122, 52, 110); ctx.moveTo(R - 178, yT - 67); ctx.lineTo(R - 126, yT - 67);
-    ctx.rect(R - 242, yT - 122, 56, 110); ctx.rect(cl + 8, yT - 91, D.bw, 78); ctx.rect(cr - 8 - D.bw, yT - 91, D.bw, 78); ctx.stroke();
+    ctx.rect(R - 242, yT - 122, 56, 110); ctx.rect(D.bx, yT - 91, D.bw, 36); ctx.rect(D.bx, yT - 49, D.bw, 36); ctx.stroke();
   }
   drawTicker(yT);
   ctx.shadowBlur = 0;
