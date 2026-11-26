@@ -34,7 +34,10 @@ canvas{position:fixed;left:0;top:0;width:100%;height:100%;display:block}
 body[data-mode=flight] .fo{display:flex}
 body[data-mode=map] .mo{display:flex}
 #lz{position:fixed;left:0;top:0;bottom:0;width:46%}
-#mz{position:fixed;inset:0}
+#mz,#tz{position:fixed;inset:0}
+.sub{border-width:1px;border-radius:3px;font-size:11px;box-shadow:none;letter-spacing:0}
+.sub[hidden]{display:none!important}
+#bTgt{border:0;background:none}
 #sb,#sk{position:fixed;left:0;top:0;border-radius:50%;pointer-events:none;border:2px solid var(--g)}
 #sb{width:116px;height:116px;margin:-58px 0 0 -58px;opacity:.55}
 #sk{width:52px;height:52px;margin:-26px 0 0 -26px;opacity:.75;background:rgba(57,255,106,.15);
@@ -93,6 +96,7 @@ h2{margin:0;font-size:clamp(20px,7vh,40px);letter-spacing:.18em;font-weight:norm
 <div id="safe"></div>
 
 <!-- flight controls -->
+<div id="tz" class="fo"></div>
 <div id="lz" class="fo"><div id="sb"></div><div id="sk"></div></div>
 <div id="bFire"  class="btn round fo" data-hold="fire">FIRE</div>
 <div id="bBoost" class="btn rock fo"><small>&#9650;</small>FASTER<small>HOLD: BOOST</small></div>
@@ -101,6 +105,9 @@ h2{margin:0;font-size:clamp(20px,7vh,40px);letter-spacing:.18em;font-weight:norm
 <div id="bMap"   class="btn fo">SCAN</div>
 <div id="bView"  class="btn fo"></div>
 <div id="bPause" class="btn fo">II</div>
+<div id="bTgt"  class="btn fo sub" hidden></div>
+<div id="bSubP" class="btn fo sub" hidden>&#9664;</div>
+<div id="bSubN" class="btn fo sub" hidden>&#9654;</div>
 <!-- map controls -->
 <div id="mz" class="mo"></div>
 <div id="bWarp" class="btn mo">WARP</div>
@@ -111,7 +118,7 @@ h2{margin:0;font-size:clamp(20px,7vh,40px);letter-spacing:.18em;font-weight:norm
   <h1>STARGUARD</h1>
   <div class="how">
     <b>LEFT THUMB</b> steers &middot; <b>FIRE</b> the selected weapon &middot; <b>WEAPON</b> cycles laser, missiles, torpedoes &middot; <b>FASTER / SLOWER</b> tap to set speed, hold for boost or full stop<br>
-    <b>VIEW</b> flips between fore and aft (torpedoes drop aft only) &middot; <b>SCAN</b>: tap a sector, then <b>WARP</b>. Raider fleets advance on your bases &mdash; intercept them.<br>
+    <b>Tap a ship</b> to target it and pick a subsystem &middot; <b>VIEW</b> flips between fore and aft (torpedoes drop aft only) &middot; <b>SCAN</b>: tap a sector, then <b>WARP</b>. Raider fleets advance on your bases &mdash; intercept them.<br>
     Fly into a base ring to refuel and repair. Lose <b>HOME</b> base and it is over.
   </div>
   <div class="tb" id="bStart">LAUNCH</div>
@@ -163,8 +170,12 @@ const T = {
   missileSpeed: 190, missileTurn: 3.5, missileDmg: 6, missileGap: 0.5,
   torpSpeed: 130, torpBlast: 48, torpDmg: 20, torpGap: 1.3,     // torpedo: full damage in the inner half of the blast, half outside
   assistCone: 0.12, assistRange: 650,       // auto-aim cone (rad) and range
-  boltSpeed: 105, boltDmg: 13,              // enemy shots
+  subBias: 0.8,                             // chance a hit lands on the subsystem you have selected (otherwise it is random)
+  shieldSoak: 0.5,                          // share of hull damage an enemy's working shield absorbs
+  crippled: 0.25,                           // speed and turn rate left to a ship with its engine destroyed
+  boltSpeed: 130, boltDmg: 13, fireRange: 500,   // enemy shots: speed, shield damage, and how close they must be to open fire
   boostCost: 2.5, shieldRegen: 2.5, shieldCost: 0.6, shieldDelay: 4,   // shields wait this long after a hit before recharging
+  dockTime: 1.3,                            // seconds docked before repair and rearm are done and you may launch
   warpCost: 4,                              // energy per sector jumped
   warpDays: 6,                              // seconds the fleets gain per sector jumped
   fleetStep: 20,                            // seconds between fleet moves (wave 1)
@@ -267,8 +278,8 @@ function mkBase() {
 }
 const ET = {
   F: { name: 'RAIDER',  proto: mkFighter(), hp: 1, r: 5.5, speed: 52, turn: 1.6, rate: 2.4, cone: 0.93, pts: 100, spin: 'z', brk: 60 },
-  S: { name: 'SAUCER',  proto: mkSaucer(),  hp: 4, r: 7,   speed: 40, turn: 2.4, rate: 1.7, cone: 0.80, pts: 150, spin: 'y', brk: 80 },
-  C: { name: 'CRUISER', proto: mkCruiser(), hp: 18, r: 13,  speed: 22, turn: 0.5, rate: 1.1, cone: -1,   pts: 500, spin: null, brk: 110 },
+  S: { name: 'SAUCER',  proto: mkSaucer(),  hp: 3, r: 7,   speed: 40, turn: 2.4, rate: 1.7, cone: 0.80, pts: 150, spin: 'y', brk: 80 },
+  C: { name: 'CRUISER', proto: mkCruiser(), hp: 14, r: 13,  speed: 22, turn: 0.5, rate: 1.1, cone: -1,   pts: 500, spin: null, brk: 110 },
 };
 function instance(proto) {
   const o = proto.clone(), mats = [];
@@ -311,7 +322,7 @@ const S = {
   mode: 'title', prev: 'flight', score: 0, wave: 0, date: 0,
   energy: 100, shield: 100, sys: { RAD: 1, COM: 1, ENG: 1 },
   speed: T.cruise, throttle: T.cruise, pr: 0, yr: 0, sx: 0, sy: 0,
-  fireCD: 0, gun: 0, lock: null, wpn: 0, charge: 100, ammo: { m: 8, t: 3 }, tkMsg: '', tkT: 0, aft: false, comm: null, commQ: [], lowHail: false, shieldT: 0, dockWarn: 0, docked: false, dockT: 0, dockCD: 0,
+  fireCD: 0, gun: 0, lock: null, wpn: 0, charge: 100, ammo: { m: 8, t: 3 }, tkMsg: '', tkT: 0, aft: false, comm: null, commQ: [], lowHail: false, shieldT: 0, dockWarn: 0, target: null, subI: 0, docked: false, dockT: 0, dockCD: 0,
   shake: 0, flash: 0, wflash: 0, msg: '', msgT: 0, msgC: CG,
   warpT: 0, warpTo: null, jumped: false, sel: null, waveT: 0, lowT: 0, time: 0,
   invY: pref('sg_inv') === '1', sound: pref('sg_snd') !== '0',
@@ -406,7 +417,9 @@ function stickMove(e) {
   input.x = curve(dx); input.y = curve(dy);
 }
 function stickEnd() { stickId = null; input.x = input.y = 0; lz.classList.remove('act'); stickHome(); }
+$('tz').addEventListener('pointerdown', e => { e.preventDefault(); unlockAudio(); glassTap(e); });
 lz.addEventListener('pointerdown', e => {
+  if (glassTap(e)) { unlockAudio(); e.preventDefault(); return; }   // a tap on a target is a selection, not a grab of the stick
   if (stickId !== null) return;
   stickId = e.pointerId; sox = e.clientX; soy = e.clientY; lz.classList.add('act');
   try { lz.setPointerCapture(e.pointerId); } catch (_) {}
@@ -428,14 +441,14 @@ document.querySelectorAll('[data-hold]').forEach(b => {
 let rockDocked = null;
 function rockLabel() {                    // the top half of the throttle rocker reads LAUNCH while docked
   $('bBrake').classList.toggle('off', S.docked || S.throttle <= 0);    // nothing slower than stopped
-  $('bBoost').classList.toggle('alert', S.docked && S.mode === 'flight');   // LAUNCH flashes while you are docked
+  $('bBoost').classList.toggle('alert', S.docked && S.dockT > T.dockTime && S.mode === 'flight');   // LAUNCH flashes once you are serviced
   if (S.docked === rockDocked) return; rockDocked = S.docked;
   $('bBoost').innerHTML = S.docked ? '<small>&#9650;&#9650;</small>LAUNCH' : '<small>&#9650;</small>FASTER<small>HOLD: BOOST</small>';
 }
 function launch() { S.docked = false; S.dockCD = 5; S.throttle = S.speed = T.cruise; }
 function stepThrottle(d) {
   if (S.mode !== 'flight') return;
-  if (S.docked) { if (d > 0 && S.dockT > 0.6) { launch(); sfx.blip(); } return; }
+  if (S.docked) { if (d > 0 && S.dockT > T.dockTime) { launch(); sfx.blip(); } return; }
   if (d < 0 && S.throttle <= 0) return;
   S.throttle = clamp(S.throttle + d * T.throttleStep, 0, T.throttleMax); sfx.blip();
 }
@@ -456,6 +469,7 @@ for (const [id, dir] of [['bBoost', 1], ['bBrake', -1]]) {
 }
 const tap = (id, fn) => $(id).addEventListener('pointerdown', e => { e.preventDefault(); unlockAudio(); fn(e); });
 
+tap('bSubP', () => cycleSub(-1)); tap('bSubN', () => cycleSub(1)); tap('bTgt', () => { if (S.target) setTarget(null); });
 tap('bWpn', cycleWeapon); tap('bView', toggleView); tap('bMap', openMap); tap('bBack', closeMap); tap('bWarp', tryWarp);
 tap('bPause', () => { S.prev = S.mode; setMode('pause'); });
 tap('bResume', () => setMode(S.prev));
@@ -477,10 +491,13 @@ $('mz').addEventListener('pointerdown', e => {
 });
 
 window.addEventListener('keydown', e => {
-  if (e.target === $('ini')) { if (e.code === 'Enter') saveScore(); return; }
+  if (e.target === $('ini')) { if (e.key === 'Enter' || e.code === 'Enter') saveScore(); return; }
   keys[e.code] = true; unlockAudio();
   if (e.code === 'KeyQ' && !e.repeat) cycleWeapon();
   if (e.code === 'KeyV' && !e.repeat) toggleView();
+  if (e.code === 'KeyT' && !e.repeat) cycleTarget();
+  if (e.code === 'BracketLeft' && !e.repeat) cycleSub(-1);
+  if (e.code === 'BracketRight' && !e.repeat) cycleSub(1);
   if (!e.repeat && (e.code === 'Equal' || e.code === 'NumpadAdd')) stepThrottle(1);
   if (!e.repeat && (e.code === 'Minus' || e.code === 'NumpadSubtract')) stepThrottle(-1);
   if (e.code === 'KeyX') fullStop();
@@ -513,8 +530,7 @@ if (window.visualViewport) window.visualViewport.addEventListener('resize', () =
 });
 for (const ev of ['touchend', 'pointerup', 'click']) document.addEventListener(ev, unlockAudio, { passive: true });   // the gestures iOS accepts for starting audio
 const portrait = window.matchMedia('(orientation:portrait) and (max-width:700px)');    // same test as the ROTATE DEVICE overlay
-const portraitPause = () => { if (portrait.matches && (S.mode === 'flight' || S.mode === 'map')) { S.prev = S.mode; setMode('pause'); } };
-if (portrait.addEventListener) portrait.addEventListener('change', portraitPause); else if (portrait.addListener) portrait.addListener(portraitPause);
+const portraitPause = () => { if (portrait.matches && (S.mode === 'flight' || S.mode === 'map')) { S.prev = S.mode; setMode('pause'); } };   // called every frame
 document.addEventListener('contextmenu', e => e.preventDefault());
 document.addEventListener('visibilitychange', () => {
   if (document.hidden && (S.mode === 'flight' || S.mode === 'map')) { S.prev = S.mode; setMode('pause'); }
@@ -544,6 +560,7 @@ function startWave(n) {
     for (let x = 0; x < COLS; x++) for (let y = 0; y < ROWS; y++) {
       if (fleetAt(x, y)) continue;
       const d = Math.min(cheb(x, y, S.sx, S.sy), ...live.map(b => cheb(x, y, b.x, b.y)));
+      if (cheb(x, y, bases[0].x, bases[0].y) < 3) continue;   // never start a wave within two steps of HOME
       cells.push({ x, y, d });
     }
     const edge = c => c.x === 0 || c.x === COLS - 1 || c.y === 0 || c.y === ROWS - 1;
@@ -552,7 +569,7 @@ function startWave(n) {
     const c = pool[Math.random() * pool.length | 0];
     fleets.push({ x: c.x, y: c.y, comp: mkComp(n), t: rand(0, stepTime() * 0.5), target: live[Math.random() * live.length | 0] });
   }
-  sfx.alarm();
+  if (S.sys.COM) sfx.alarm();
   hail('HOME', () => n === 1 ? `Starguard, this is Home Control. ${fleets.length} raider fleets inbound. Open your scan and intercept.`
                        : `Home Control. New contacts, ${fleets.length} raider fleets on the board. Wave ${n}.`, 1, 'wave');
 }
@@ -584,20 +601,24 @@ function updStrategy(dt) {
   if (inSector()) for (const f of fleets) if (f.x === S.sx && f.y === S.sy && !shipsOf(f)) spawnFleet(f);
   for (const f of fleets) { f.t += dt; while (f.t >= stepTime()) { f.t -= stepTime(); moveFleet(f); } }
   for (const f of fleets) {
-    const b = baseAt(f.x, f.y); if (!b) continue;
+    const b = baseAt(f.x, f.y); if (!b || S.mode === 'warp') continue;   // no losses while the player has no control
     b.hp -= dt * f.comp.length * T.baseDrain;
-    if (b.hp < 35 && b.hp > 0 && !b.warned) { b.warned = true; hail(b.name, () => b.hp > 0 ? `${stationName(b)}. Hull breaches on three decks. We cannot hold much longer.` : null, 2); }
+    if (b.hp < 35 && b.hp > 0 && !b.warned) b.warned = hail(b.name, () => b.hp > 0 ? `${stationName(b)}. Hull breaches on three decks. We cannot hold much longer.` : null, 2);   // stays unwarned if comms were down
     if (b.hp <= 0) {
       b.hp = 0;
-      if (b === curBase && baseObj) { explode(baseObj.position, 30); scene.remove(baseObj); baseObj = null; curBase = null; S.docked = false; }
+      S.wasHere = b === curBase ? b : null;
+      if (b === curBase && baseObj) { explode(baseObj.position, 30); scene.remove(baseObj); baseObj = null; curBase = null; S.docked = false; if (S.target === BASE_T) S.target = null; }
       if (b.home) return gameOver('HOME CONTROL DESTROYED');
-      sfx.boom(true); say(`${stationName(b).toUpperCase()} LOST`, CR, 3); hail('HOME', `We have lost ${stationName(b)}. All hands. Do not let it happen again.`, 2);
+      if (S.sys.COM || b === S.wasHere) { sfx.boom(true); say(`${stationName(b).toUpperCase()} LOST`, CR, 3); }   // unheard if comms are out and you are elsewhere
+      hail('HOME', `We have lost ${stationName(b)}. All hands. Do not let it happen again.`, 2);
     }
   }
   if (!fleets.length && S.waveT <= 0) {
-    S.waveT = 8; S.score += 1000 * S.wave; say(`WAVE ${S.wave} CLEAR  +${1000 * S.wave}`, '#fff', 2.2); sfx.dock();
+    const kept = bases.filter(b => b.hp > 0 && !b.home).length, bonus = (1000 + 500 * kept) * S.wave;   // 500 x wave for each outpost still standing
+    S.waveT = 8; S.score += bonus; say(`WAVE ${S.wave} CLEAR  +${bonus}`, '#fff', 2.2); sfx.dock();
     hail('HOME', 'The board is clear. Outstanding work, Starguard. Stand by for new contacts.', 1, 'count');
-    for (const b of bases) if (b.hp > 0) { b.hp = Math.min(100, b.hp + 25); if (b.hp > 50) b.warned = false; }
+    const fix = Math.min(60, 25 + 5 * (S.wave - 1));          // between-wave repairs grow with the wave
+    for (const b of bases) if (b.hp > 0) { b.hp = Math.min(100, b.hp + fix); if (b.hp > 50) b.warned = false; }
   }
   if (S.waveT > 0) { S.waveT -= dt; if (S.waveT <= 0 && !fleets.length) startWave(S.wave + 1); }
   $('bMap').classList.toggle('alert', !!S.sys.COM && fleets.some(f => baseAt(f.x, f.y)));
@@ -610,7 +631,7 @@ function clearSector() {
   for (const d of debris) d.o.geometry.dispose();
   for (const list of [enemies, bolts, lasers, ords, debris]) { for (const e of list) scene.remove(e.o); list.length = 0; }
   if (baseObj) { scene.remove(baseObj); baseObj = null; }
-  curBase = null; S.docked = false; S.lock = null;
+  curBase = null; S.docked = false; S.lock = null; S.target = null;
 }
 function enterSector() {
   clearSector();
@@ -631,7 +652,8 @@ function spawnFleet(f) {
   for (const t of f.comp) {
     const def = ET[t], inst = instance(def.proto), e = {
       o: new THREE.Group(), model: inst.o, mats: inst.mats, def, type: t, fleet: f, hp: def.hp,
-      cd: rand(1, 3), mode: 'attack', modeT: 0, evade: V(), vel: V(), flash: 0, ramCD: 0,
+      cd: rand(0.5, 1.8), mode: 'attack', modeT: 0, evade: V(), vel: V(), flash: 0, ramCD: 0,
+      subMax: SUB_HP[t], sub: { W: SUB_HP[t], S: SUB_HP[t], E: SUB_HP[t] },   // weapon, shield, engine
     };
     e.o.add(inst.o);
     _a.set(rand(-0.9, 0.9), rand(-0.35, 0.35), -rand(0.5, 1)).normalize(); if (!warping) _a.applyQuaternion(ship.quaternion);
@@ -676,7 +698,7 @@ function fireBolt(e, dist) {
   const dir = _a.sub(p).normalize(), o = new THREE.LineSegments(BOLT_GEO, BOLT_MAT);
   o.position.copy(p); scene.add(o);
   bolts.push({ o, vel: dir.clone().multiplyScalar(T.boltSpeed), life: 6 });
-  if (dist < 400) sfx.zap();
+  if (dist < T.fireRange) sfx.zap();
 }
 const WPN = [{ name: 'LASER' }, { name: 'MISSILE', plural: 'MISSILES', key: 'm', max: 8 }, { name: 'TORPEDO', plural: 'TORPEDOES', key: 't', max: 3 }];
 const MISSILE_GEO = new THREE.EdgesGeometry(new THREE.ConeGeometry(0.9, 5, 4).rotateX(Math.PI / 2));
@@ -701,7 +723,7 @@ function fireOrdnance(kind) {                       // 1 = homing missile, 2 = a
   }
   const o = new THREE.LineSegments(kind === 1 ? MISSILE_GEO : TORP_GEO, ORD_MAT);
   o.position.copy(pos); scene.add(o);
-  ords.push({ o, kind, dir, speed, life: kind === 1 ? 5 : 3.4, age: 0, target: kind === 1 ? S.lock : null });
+  ords.push({ o, kind, dir, speed, life: kind === 1 ? 5 : 3.4, age: 0, target: kind === 1 ? (enemies.includes(S.target) ? S.target : S.lock) : null });   // missiles go for your chosen target first
   if (kind === 1) sfx.missile(); else sfx.torp();
 }
 function detonate(d) {
@@ -741,12 +763,16 @@ function segHit(a, b, c, r) {                       // segment a-b vs sphere (c,
 }
 function damageEnemy(e, d) {
   if (e.dead) return;                                 // never count one ship twice
-  e.hp -= d; e.flash = 0.12;
+  // every hit also lands on one subsystem: usually the one you have selected on your target, otherwise at random
+  const want = S.target === e ? SUBS[S.subI] : null, k = want && Math.random() < T.subBias ? want : pick(['W', 'S', 'E']);
+  const shielded = e.sub.S > 0;
+  if (e.sub[k] > 0) { e.sub[k] = Math.max(0, e.sub[k] - d); if (e.sub[k] === 0 && S.target === e) { say(`${e.def.name} ${SUB_NAME[k]} DESTROYED`, '#fff', 1.8); sfx.blip(); } }
+  e.hp -= d * (shielded ? 1 - T.shieldSoak : 1); e.flash = 0.12;
   if (e.hp > 0) return sfx.tick();
   e.dead = true; explode(e.o.position, e.def.r); sfx.boom(e.type === 'C');
   scene.remove(e.o); enemies.splice(enemies.indexOf(e), 1);
   if (!enemies.length) { for (const b of bolts) { explode(b.o.position, 1.5, RED); scene.remove(b.o); } bolts.length = 0; }
-  S.score += e.def.pts; if (S.lock === e) S.lock = null;
+  S.score += e.def.pts; if (S.lock === e) S.lock = null; if (S.target === e) S.target = null;
   const f = e.fleet, i = f.comp.indexOf(e.type); if (i >= 0) f.comp.splice(i, 1);
   if (!f.comp.length) {
     fleets.splice(fleets.indexOf(f), 1); S.score += 300;
@@ -782,12 +808,13 @@ function updEnemy(e, dt) {
     }
   } else { _a.copy(p).addScaledVector(e.evade, 200); if (e.modeT <= 0) e.mode = 'attack'; }
   dummy.position.copy(p); dummy.lookAt(_a);
-  e.o.quaternion.rotateTowards(dummy.quaternion, def.turn * dt);
+  const eng = e.sub.E > 0 ? 1 : T.crippled;           // engine destroyed: nearly dead in space
+  e.o.quaternion.rotateTowards(dummy.quaternion, def.turn * eng * dt);
   _b.set(0, 0, 1).applyQuaternion(e.o.quaternion);
-  e.vel.copy(_b).multiplyScalar(def.speed); p.addScaledVector(e.vel, dt);
+  e.vel.copy(_b).multiplyScalar(def.speed * eng); p.addScaledVector(e.vel, dt);
   if (def.spin) e.model.rotation[def.spin] += dt * 3;
   e.cd -= dt;
-  if (e.cd <= 0 && dist < 420 && !S.docked) {
+  if (e.cd <= 0 && dist < T.fireRange && !S.docked && e.sub.W > 0) {   // weapon destroyed: cannot fire
     _c.subVectors(ship.position, p).normalize();
     if (_b.dot(_c) > def.cone) { fireBolt(e, dist); e.cd = def.rate * rand(0.7, 1.4); }
   }
@@ -821,17 +848,17 @@ function updFlight(dt) {
     baseObj.rotation.z += dt * 0.15;
     const d = ship.position.distanceTo(baseObj.position);
     if (S.dockWarn > 0) S.dockWarn -= dt;
-    if (S.docked && enemies.length) { launch(); say('RAIDERS INBOUND   EMERGENCY LAUNCH', CR); sfx.alarm(); }
-    else if (!S.docked && d < 42 && enemies.length && S.dockWarn <= 0) { S.dockWarn = 4; say('HOSTILES IN SECTOR   CANNOT DOCK', CR); sfx.deny(); }
+    if (S.docked && enemies.length) { launch(); S.dockWarn = 8; say('RAIDERS INBOUND   EMERGENCY LAUNCH', CR, 3.5); sfx.alarm(); }
+    else if (!S.docked && d < 42 && enemies.length && S.dockWarn <= 0) { S.dockWarn = 8; say('HOSTILES IN SECTOR   CANNOT DOCK', CR); sfx.deny(); }
     if (!S.docked && S.dockCD <= 0 && d < 42 && !enemies.length) { S.docked = true; S.dockT = 0; sfx.dock(); hail(curBase.name, `${stationName(curBase)}. Docking clamps engaged. Refuelling and rearming now.`); }
     if (S.docked) {
       target = 0; S.speed = 0; S.dockT += dt;
       S.energy = Math.min(100, S.energy + 30 * dt); S.shield = Math.min(100, S.shield + 45 * dt);
       S.charge = Math.min(100, S.charge + 60 * dt);
-      if (S.dockT > 1.2 && !(S.sys.RAD && S.sys.COM && S.sys.ENG && S.ammo.m === WPN[1].max && S.ammo.t === WPN[2].max)) {
+      if (S.dockT > T.dockTime - 0.1 && !(S.sys.RAD && S.sys.COM && S.sys.ENG && S.ammo.m === WPN[1].max && S.ammo.t === WPN[2].max)) {
         S.sys.RAD = S.sys.COM = S.sys.ENG = 1; S.ammo.m = WPN[1].max; S.ammo.t = WPN[2].max; wpnLabel(); say('REPAIRED AND REARMED'); sfx.dock();
       }
-      if (boost && S.dockT > 0.6) launch();
+      if (boost && S.dockT > T.dockTime) launch();
     }
   }
   S.speed += (target - S.speed) * Math.min(1, dt * 2.5);
@@ -841,7 +868,8 @@ function updFlight(dt) {
   if (S.shieldT > 0) S.shieldT -= dt;
   else if (S.shield < 100 && S.energy > 0 && !S.docked) { S.shield = Math.min(100, S.shield + T.shieldRegen * dt); S.energy -= T.shieldCost * dt; }
   S.energy = Math.max(0, S.energy);
-  if (S.energy < 20 && !S.lowHail) { S.lowHail = true; hail('HOME', 'Starguard, your tank is nearly dry. Break off and dock.'); } else if (S.energy > 50) S.lowHail = false;
+  if (S.energy < 20 && !S.lowHail) S.lowHail = hail('HOME', () => S.energy < 20 ? 'Starguard, your tank is nearly dry. Break off and dock.' : null);
+  else if (S.energy > 50) S.lowHail = false;
 
   // --- auto-aim lock: enemy nearest the crosshair inside a small cone
   viewFwd(_a); S.lock = null; let best = T.assistCone;
@@ -907,8 +935,8 @@ function tryWarp() {
   const cost = warpCost(x, y), emergency = S.energy < cost;
   if (emergency && !baseAt(x, y)) { say('INSUFFICIENT ENERGY', CR); return sfx.deny(); }
   // emergency jump: only to a base; drains the tank and the shields, burns out one system, and takes twice as long
-  if (emergency) { S.energy = 0; S.shield = 0; const ok = Object.keys(S.sys).filter(k => S.sys[k]); if (ok.length) { const k = pick(ok); S.sys[k] = 0; if (k === 'COM') { S.comm = null; S.commQ = []; } } }
-  else S.energy -= cost;
+  if (emergency) { S.energy = 0; S.shield = 0; const ok = Object.keys(S.sys).filter(k => S.sys[k]); if (ok.length) { const k = pick(ok); S.sys[k] = 0; S.burned = k; if (k === 'COM') { S.comm = null; S.commQ = []; } } }
+  else { S.energy -= cost; S.burned = null; }
   S.warpTo = { x, y, d: cheb(x, y, S.sx, S.sy) * (emergency ? 2 : 1) }; S.warpT = 0; S.jumped = false;
   S.docked = false; setView(false); setMode('warp'); sfx.warp();
 }
@@ -923,7 +951,8 @@ function updWarp(dt) {
     const days = S.warpTo.d * T.warpDays;                    // long jumps cost time: the fleets keep moving
     S.sx = S.warpTo.x; S.sy = S.warpTo.y; S.sel = null;
     S.date += days; for (const f of fleets) f.t += days;
-    for (const f of fleets) { const b = baseAt(f.x, f.y); if (b) b.hp = Math.max(1, b.hp - days * f.comp.length * T.baseDrain); }   // a base under attack keeps taking damage while you travel
+    // a base under attack keeps taking damage while you travel, at half rate and never below 15: a rescue you set out on can still succeed
+    for (const f of fleets) { const b = baseAt(f.x, f.y); if (b) b.hp = Math.max(Math.min(b.hp, 15), b.hp - days * f.comp.length * T.baseDrain * 0.5); }
     enterSector();
     ship.position.z = 0.5 * WARP_LEN * 40 + 900 * WARP_LEN / Math.PI;   // back off by the distance the rest of the warp covers, so we drop out at the sector origin
   }
@@ -932,6 +961,7 @@ function updWarp(dt) {
     const n = enemies.length;
     if (n) { say(`SECTOR ${secName(S.sx, S.sy)}  ${n} HOSTILE${n > 1 ? 'S' : ''}`, CR); sfx.alarm(); hail('RAIDER', pick(TAUNTS.arrive), 0); }
     else say(curBase ? 'FLY INTO RING TO DOCK' : `SECTOR ${secName(S.sx, S.sy)} CLEAR`);
+    if (S.burned) { say(`EMERGENCY JUMP   ${{ RAD: 'RADAR', COM: 'COMMS', ENG: 'ENGINE' }[S.burned]} BURNED OUT`, CR, 3.5); S.burned = null; }
   }
 }
 function mapLayout() {
@@ -944,13 +974,98 @@ function mapLayout() {
 //  HUD (2D vector overlay)
 // =====================================================================
 // =====================================================================
+//  TARGETING — tap a ship or station on the glass; its wireframe and subsystems take over the radar scope
+// =====================================================================
+const SUBS = [null, 'W', 'S', 'E'], SUB_NAME = { W: 'WEAPON', S: 'SHIELD', E: 'ENGINE' };
+const SUB_HP = { F: 1, S: 2, C: 5 };       // hits each subsystem takes, by ship class
+const BASE_T = { base: true };             // stand-in target object for the station in this sector
+function wireOf(proto) {                   // flatten a model's edge lines into model-space segments for the 2D scope
+  proto.updateMatrixWorld(true); const seg = []; let rad = 0;
+  proto.traverse(n => {
+    if (!n.isLineSegments) return; const a = n.geometry.attributes.position;
+    for (let i = 0; i < a.count; i++) { const v = V().fromBufferAttribute(a, i).applyMatrix4(n.matrixWorld); seg.push(v); rad = Math.max(rad, v.length()); }
+  });
+  return { seg, rad };
+}
+const WIRE = { F: wireOf(ET.F.proto), S: wireOf(ET.S.proto), C: wireOf(ET.C.proto), B: wireOf(mkBase()) };
+function pickAt(x, y) {                    // which target, if any, is under this point on the glass
+  if (y > dash().yS) return null;
+  let best = null, bd = 1e9;
+  const test = (pos, r, obj) => {
+    _a.copy(pos).applyMatrix4(camera.matrixWorldInverse); if (_a.z >= 0) return;
+    const dist = _a.length(); _b.copy(pos).project(camera);
+    const sx = (_b.x + 1) / 2 * W, sy = (1 - _b.y) / 2 * H;
+    const s = clamp(r / dist * H / (2 * Math.tan(FOV * Math.PI / 360)) * 1.5, 9, 70) + 16, d = Math.hypot(sx - x, sy - y);   // bracket size plus a finger's margin
+    if (Math.abs(sx - x) < s && Math.abs(sy - y) < s && d < bd) { bd = d; best = obj; }
+  };
+  for (const e of enemies) test(e.o.position, e.def.r, e);
+  if (baseObj) test(baseObj.position, 34, BASE_T);
+  return best;
+}
+function setTarget(t) { S.target = t; S.subI = 0; sfx.blip(); }
+function glassTap(e) {                     // tap a target to select it, tap it again to let go
+  if (S.mode !== 'flight') return false;
+  const t = pickAt(e.clientX, e.clientY); if (!t) return false;
+  setTarget(t === S.target ? null : t); return true;
+}
+function cycleSub(d) { if (S.mode !== 'flight' || !S.target || S.target.base) return; S.subI = (S.subI + d + SUBS.length) % SUBS.length; sfx.blip(); }
+function cycleTarget() {                   // keyboard: step through hostiles nearest first, then the station, then none
+  if (S.mode !== 'flight') return;
+  const list = enemies.slice().sort((a, b) => a.o.position.distanceTo(ship.position) - b.o.position.distanceTo(ship.position));
+  if (baseObj) list.push(BASE_T);
+  const i = list.indexOf(S.target); setTarget(i + 1 < list.length ? list[i + 1] : (i < 0 && list.length ? list[0] : null));
+}
+let tgtKey = '';
+function targetUI() {                      // show and place the scope's touch buttons: clear (the wireframe itself), previous and next subsystem
+  const show = S.mode === 'flight' && !!S.target && !(S.comm && S.comm.t > 0), shipT = show && !S.target.base;
+  $('bSubP').hidden = $('bSubN').hidden = !shipT; $('bTgt').hidden = !show;
+  if (!show) return;
+  const D = dash(), r = D.r + 2, x = D.cx - r, y = D.yC + 55 - r, w = 2 * r, key = [x, y, w].join();
+  if (key === tgtKey) return; tgtKey = key;
+  const put = (id, l, t, ww, hh) => Object.assign($(id).style, { left: l + 'px', top: t + 'px', width: ww + 'px', height: hh + 'px' });
+  put('bSubP', x, y + w - 26, 24, 26); put('bSubN', x + w - 24, y + w - 26, 24, 26); put('bTgt', x, y, w, w - 26);
+}
+function drawTarget(cx, cy, r) {           // takes the radar's place while something is targeted
+  const t = S.target, isBase = !!t.base, wire = WIRE[isBase ? 'B' : t.type], col = isBase ? CG : CR;
+  const x = cx - r, y = cy - r, w = 2 * r, wh = w - 26;
+  ctx.fillStyle = 'rgba(0,12,4,.92)'; ctx.fillRect(x, y, w, w); ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.strokeRect(x, y, w, w);
+  // turntable view, orthographic, tilted so you see the top
+  const a = S.time * 0.8, ca = Math.cos(a), sa = Math.sin(a), ct = Math.cos(0.45), st = Math.sin(0.45);
+  const k = (Math.min(w, wh) / 2 - 5) / wire.rad, oy = y + wh / 2;
+  const P = v => { const X = v.x * ca + v.z * sa, Z = -v.x * sa + v.z * ca; return [cx + X * k, oy - (v.y * ct - Z * st) * k]; };
+  ctx.save(); ctx.beginPath(); ctx.rect(x + 1, y + 1, w - 2, wh - 2); ctx.clip();
+  ctx.strokeStyle = CG; ctx.lineWidth = 1; ctx.beginPath();
+  for (let i = 0; i < wire.seg.length; i += 2) { const p1 = P(wire.seg[i]), p2 = P(wire.seg[i + 1]); ctx.moveTo(p1[0], p1[1]); ctx.lineTo(p2[0], p2[1]); }
+  ctx.stroke();
+  const tone = h => h <= 0 ? CR : h < 1 ? AMBER : CG;
+  if (!isBase) {                           // subsystem markers sit where the parts are: weapon at the nose, engine at the tail, shield amidships
+    const at = { W: V(0, 0, wire.rad * 0.8), S: V(0, wire.rad * 0.35, 0), E: V(0, 0, -wire.rad * 0.8) };
+    for (const s of ['W', 'S', 'E']) {
+      const [px, py] = P(at[s]), sel = SUBS[S.subI] === s; ctx.fillStyle = ctx.strokeStyle = tone(t.sub[s] / t.subMax);
+      ctx.fillRect(px - 2.5, py - 2.5, 5, 5);
+      if (sel && (S.time * 4 | 0) % 2) { ctx.strokeStyle = '#fff'; ctx.strokeRect(px - 6, py - 6, 12, 12); }
+    }
+  }
+  ctx.restore();
+  ctx.strokeStyle = col; ctx.beginPath(); ctx.moveTo(x, y + wh); ctx.lineTo(x + w, y + wh); ctx.stroke();
+  if (isBase) {
+    text(curBase ? curBase.name : 'BASE', cx, y + wh + 11, 9, 'center', CG);
+    text(curBase ? `HULL ${Math.ceil(curBase.hp)}%` : '', cx, y + wh + 22, 9, 'center', curBase && curBase.hp < 35 ? CR : CG);
+  } else {
+    const s = SUBS[S.subI], h = s ? t.sub[s] / t.subMax : Math.max(0, t.hp) / t.def.hp;
+    text(s ? SUB_NAME[s] : 'HULL', cx, y + wh + 11, 8, 'center', '#fff');
+    text(h <= 0 ? 'OUT' : Math.round(h * 100) + '%', cx, y + wh + 22, 10, 'center', tone(h));
+  }
+}
+
+// =====================================================================
 //  COMMS — bases and enemy pilots hail you; a talking head takes over the radar scope
 // =====================================================================
 const COMM_CPS = 30;                       // speech speed, characters per second
 const SPEAKERS = {
   HOME:   { name: 'HOME CONTROL',  kind: 0, gear: 1, p: [1.00, 1.00, 1.0], col: [0.30, 1.0, 0.42], pitch: 210 },
-  BETA:   { name: 'BETA STATION',  kind: 0, gear: 2, p: [0.90, 0.84, 0.6], col: [0.30, 1.0, 0.42], pitch: 300 },
-  GAMMA:  { name: 'GAMMA STATION', kind: 0, gear: 3, p: [1.12, 1.16, 1.5], col: [0.30, 1.0, 0.42], pitch: 160 },
+  BETA:   { name: 'BETA STATION',  kind: 0, gear: 2, p: [0.93, 0.86, 0.7], col: [0.30, 1.0, 0.42], pitch: 300 },
+  GAMMA:  { name: 'GAMMA STATION', kind: 0, gear: 3, p: [1.08, 1.14, 1.4], col: [0.30, 1.0, 0.42], pitch: 160 },
   RAIDER: { name: 'RAIDER LEAD',   kind: 1, gear: 0, p: [1, 1, 1],         col: [1.0, 0.30, 0.22], pitch: 95, hostile: true },
 };
 const pick = a => a[Math.random() * a.length | 0];
@@ -962,24 +1077,24 @@ const TAUNTS = {
 };
 // line may be a function: it is evaluated when the speaker actually starts, so counts are never stale, and may return
 // null to say nothing. A tag marks lines about the same subject: a newer one replaces any older one, spoken or queued.
-function hail(who, line, pri = 1, tag = null) {   // pri 0 = chatter, dropped if the channel is busy
-  if (!S.sys.COM || !['flight', 'map', 'warp'].includes(S.mode)) return;   // comms out = silence
+function hail(who, line, pri = 1, tag = null) {   // pri 0 = chatter (dropped if busy), 1 = routine, 2 = urgent (jumps the queue). Returns whether it was taken
+  if (!S.sys.COM || !['flight', 'map', 'warp'].includes(S.mode)) return false;   // comms out = silence
   const h = { sp: SPEAKERS[who] || SPEAKERS.HOME, line, text: '', t: 0, bt: 0, talk: 0, tag };
   if (tag) { S.commQ = S.commQ.filter(q => q.tag !== tag); if (S.comm && S.comm.tag === tag) S.comm = null; }
-  if (!S.comm && !S.commQ.length) openChannel(h);
-  else if (pri > 0 && S.commQ.length < 2) S.commQ.push(h);
-}
-function openChannel(h) {
-  h.text = typeof h.line === 'function' ? h.line() : h.line;
-  if (!h.text) return false;
-  S.comm = h; return true;
+  if (!S.comm && !S.commQ.length) { S.comm = h; return true; }
+  if (pri <= 0) return false;
+  if (pri >= 2) { S.commQ.unshift(h); if (S.commQ.length > 3) S.commQ.pop(); return true; }
+  if (S.commQ.length >= 2) return false;
+  S.commQ.push(h); return true;
 }
 function updComm(dt) {
-  while (!S.comm && S.commQ.length) openChannel(S.commQ.shift());
+  if (!S.comm && S.commQ.length) S.comm = S.commQ.shift();
   if (!S.comm) return;
   const c = S.comm;
   if (c.t === 0) {                           // wait for an alert to be read first, but never more than a few seconds
     if (S.msgT > 0 && (c.wait = (c.wait || 0) + dt) < 4) return;
+    c.text = typeof c.line === 'function' ? c.line() : c.line;   // decided now, as they start to speak, so it cannot be stale
+    if (!c.text) { S.comm = null; return; }
     sfx.hail();
   }
   c.t += dt;
@@ -999,22 +1114,49 @@ float sdEll(vec3 p,vec3 r){float k0=length(p/r),k1=length(p/(r*r));return k0*(k0
 float sdCap(vec3 p,vec3 a,vec3 b,float r){vec3 pa=p-a,ba=b-a;float h=clamp(dot(pa,ba)/dot(ba,ba),0.,1.);return length(pa-ba*h)-r;}
 float smin(float a,float b,float k){float h=clamp(.5+.5*(b-a)/k,0.,1.);return mix(b,a,h)-k*h*(1.-h);}
 float smax(float a,float b,float k){return -smin(-a,-b,k);}
-float human(vec3 p){
-  vec3 q=vec3(abs(p.x),p.y,p.z);float w=uP.x,j=uP.y,br=uP.z;
-  float d=sdEll(q-vec3(0.,.28,-.05),vec3(.60*w,.70,.72));
-  d=smin(d,sdEll(q-vec3(0.,-.26-uTalk*.07,.12),vec3(.44*j,.48,.50)),.22);
-  d=smin(d,sdCap(q,vec3(0.,.12,.66),vec3(0.,-.10,.80),.065),.07);
-  d=smin(d,sdCap(q,vec3(.08,.27,.66),vec3(.36,.25,.52),.06*br),.07);
-  d=smax(d,-(length(q-vec3(.23,.12,.66))-.12),.05);
-  d=min(d,length(q-vec3(.23,.11,.55))-.085);
-  d=smax(d,-sdEll(q-vec3(0.,-.36-uTalk*.06,.62),vec3(.19,.025+uTalk*.085,.2)),.03);
-  d=smin(d,sdEll(q-vec3(.60*w,.08,-.02),vec3(.07,.15,.10)),.04);
-  d=smin(d,sdCap(q,vec3(0.,-.55,-.08),vec3(0.,-1.2,-.12),.27),.12);
-  d=smin(d,sdEll(q-vec3(0.,-1.42,-.12),vec3(1.15,.42,.55)),.15);
-  if(uGear>.5&&uGear<1.5){d=min(d,sdEll(q-vec3(0.,.70,-.05),vec3(.66*w,.30,.76)));d=min(d,sdEll(q-vec3(0.,.60,.62),vec3(.42,.035,.30)));}
-  else if(uGear>1.5&&uGear<2.5){d=min(d,length(q-vec3(.64*w,.08,0.))-.17);d=min(d,sdCap(p,vec3(.64*w,0.,.1),vec3(.22,-.36,.66),.03));d=min(d,sdCap(q,vec3(.62*w,.2,0.),vec3(0.,.99,-.05),.04));}
-  else if(uGear>2.5){d=min(d,sdEll(q-vec3(0.,.14,.58),vec3(.46,.10,.22)));}
-  return d;
+vec2 U(vec2 a,float d,float m){return d<a.x?vec2(d,m):a;}
+// station crew: x = distance, y = material (0 skin, 1 hair, 2 eye, 3 uniform, 4 kit)
+vec2 human(vec3 p){
+  vec3 q=vec3(abs(p.x),p.y,p.z);float w=uP.x,j=uP.y,br=uP.z,tk=uTalk;
+  float d=sdEll(q-vec3(0.,.36,-.06),vec3(.60*w,.62,.70));                         // cranium
+  d=smin(d,sdEll(q-vec3(0.,-.10-tk*.02,.10),vec3(.47*j,.62,.52)),.25);           // face
+  d=smin(d,length(q-vec3(0.,-.62-tk*.06,.34))-.15,.18);                           // chin
+  d=smin(d,length(q-vec3(.36*j,-.40-tk*.03,.04))-.15,.20);                        // jaw corners
+  d=smin(d,length(q-vec3(.33,.00,.40))-.14,.16);                                  // cheekbones
+  d=smin(d,sdCap(q,vec3(.09,.265,.60),vec3(.34,.25,.50),.05*br),.08);             // brow
+  d=smin(d,sdCap(q,vec3(0.,.20,.62),vec3(0.,-.07,.77),.05),.06);                  // nose bridge
+  d=smin(d,length(q-vec3(0.,-.11,.79))-.07,.05);                                  // nose tip
+  d=smin(d,length(q-vec3(.075,-.14,.70))-.05,.04);                                // nostrils
+  d=smax(d,-sdEll(q-vec3(.23,.13,.63),vec3(.125,.075,.10)),.04);                  // almond sockets
+  float blink=step(.955,fract(uT*.29+uP.z));
+  d=smin(d,sdCap(q,vec3(.13,.185,.585),vec3(.33,.175,.555),.026+blink*.05),.03);  // upper lids (and blinking)
+  d=smin(d,sdEll(q-vec3(0.,-.315,.645),vec3(.15,.034,.075)),.04);                 // upper lip
+  d=smin(d,sdEll(q-vec3(0.,-.395-tk*.075,.635),vec3(.12,.04,.075)),.04);          // lower lip moves with speech
+  d=smax(d,-sdEll(q-vec3(0.,-.352-tk*.036,.70),vec3(.14,.010+tk*.07,.12)),.02);   // mouth
+  d=smin(d,sdEll(q-vec3(.60*w,.08,-.05),vec3(.05,.14,.09)),.03);                  // ears
+  d=smin(d,sdCap(q,vec3(0.,-.58,-.12),vec3(0.,-1.2,-.15),.29),.10);               // neck
+  vec2 r=vec2(d,0.);
+  r=U(r,length(q-vec3(.23,.125,.54))-.074,2.);                                    // eyes
+  r=U(r,sdEll(q-vec3(0.,-1.52,-.15),vec3(1.25,.46,.60)),3.);                      // shoulders
+  r=U(r,sdEll(q-vec3(0.,-1.07,-.10),vec3(.43,.10,.43)),3.);                       // collar
+  float line=.20+.55*q.z-q.y;                                                     // hairline: forehead, over the ears, down to the nape
+  float hair=max(sdEll(q-vec3(0.,.39,-.10),vec3(.635*w,.655,.745)),line*.85);
+  if(uGear<1.5){                                                                  // duty officer: peaked cap over short hair
+    r=U(r,hair,1.);
+    r=U(r,max(sdEll(q-vec3(0.,.66,-.04),vec3(.70*w,.34,.80)),.52-q.y),4.);
+    r=U(r,sdEll(q-vec3(0.,.56,.66),vec3(.44,.03,.30)),4.);
+  }else if(uGear<2.5){                                                            // comms operator: longer hair, headset and boom mic
+    r=U(r,min(hair,sdEll(q-vec3(.50*w,-.22,-.22),vec3(.22,.62,.40))),1.);
+    r=U(r,length(q-vec3(.66*w,.08,-.02))-.15,4.);
+    r=U(r,sdCap(p,vec3(.66*w,.0,.08),vec3(.20,-.37,.68),.026),4.);
+    r=U(r,sdCap(q,vec3(.64*w,.22,-.02),vec3(0.,1.02,-.06),.035),4.);
+  }else{                                                                          // station commander: cropped hair and a full beard
+    r=U(r,hair,1.);
+    float beard=max(sdEll(q-vec3(0.,-.36-tk*.04,.14),vec3(.50*j,.50,.56)),q.y+.215-.25*smoothstep(.25,.5,q.x));
+    beard=max(beard,-sdEll(q-vec3(0.,-.355-tk*.04,.72),vec3(.17,.05+tk*.07,.16)));
+    r=U(r,beard,1.);
+  }
+  return r;
 }
 float alien(vec3 p){
   vec3 q=vec3(abs(p.x),p.y,p.z);
@@ -1030,7 +1172,9 @@ float alien(vec3 p){
   d=smin(d,sdCap(q,vec3(.75,-1.2,-.1),vec3(1.0,-.75,-.2),.06),.06);
   return d;
 }
-float map(vec3 p){p.xz*=rot(sin(uT*.7)*.22);p.yz*=rot(sin(uT*1.1)*.06+uTalk*.03);return uKind<.5?human(p):alien(p);}
+vec3 loc(vec3 p){p.xz*=rot(sin(uT*.7)*.22);p.yz*=rot(sin(uT*1.1)*.06+uTalk*.03);return p;}   // head sways and nods
+vec2 map2(vec3 p){vec3 l=loc(p);return uKind<.5?human(l):vec2(alien(l),0.);}
+float map(vec3 p){return map2(p).x;}
 void main(){
   vec2 uv=(gl_FragCoord.xy-.5*uRes)/uRes.y;
   vec3 ro=vec3(0.,.02,3.6),rd=normalize(vec3(uv*.70,-1.));
@@ -1041,9 +1185,12 @@ void main(){
   if(hit){
     vec3 p=ro+rd*t;vec2 e=vec2(.03,0.);
     vec3 n=normalize(vec3(map(p+e.xyy)-map(p-e.xyy),map(p+e.yxy)-map(p-e.yxy),map(p+e.yyx)-map(p-e.yyx)));
-    n=normalize(floor(n*2.1+.5)/2.1);
+    n=normalize(floor(n*2.6+.5)/2.6);
     float l=clamp(dot(n,normalize(vec3(-.45,.55,.7))),0.,1.);
-    v=.22+.78*floor(l*4.+.5)/4.;
+    float m=map2(p).y,tone=1.;vec3 lp=loc(p);
+    if(m>.5&&m<1.5)tone=.42;else if(m>2.5&&m<3.5)tone=.60;else if(m>3.5)tone=.50;
+    else if(m>1.5)tone=length(vec2(abs(lp.x)-.23,lp.y-.125))<.034?.10:1.25;       // eye white with a dark pupil
+    v=clamp((.24+.76*floor(l*4.+.5)/4.)*tone,.06,1.);
   }
   float nz=fract(sin(dot(gl_FragCoord.xy+uT*37.,vec2(12.9898,78.233)))*43758.5453);
   gl_FragColor=vec4(uCol*mix(v*line,nz,uNoise),1.);
@@ -1085,16 +1232,17 @@ function bracket(x, y, s) {
   ctx.moveTo(x + s, y + s - k); ctx.lineTo(x + s, y + s); ctx.lineTo(x + s - k, y + s);
   ctx.moveTo(x - s + k, y + s); ctx.lineTo(x - s, y + s); ctx.lineTo(x - s, y + s - k); ctx.stroke();
 }
-function marker(pos, color, r, label, locked) {        // bracket when visible, edge arrow when not
+function marker(pos, color, r, label, locked, targeted) {   // bracket when visible, edge arrow when not
   _a.copy(pos).applyMatrix4(camera.matrixWorldInverse);
   const dist = _a.length(), lx = _a.x, ly = _a.y, front = _a.z < 0;
   _b.copy(pos).project(camera);
   ctx.strokeStyle = ctx.fillStyle = ctx.shadowColor = color;
   const x = (_b.x + 1) / 2 * W, y = (1 - _b.y) / 2 * H, D = dash();
-  const glass = (x > D.cl && x < D.cr ? D.yC : D.yS) - 4;     // bottom edge of the glass at this x
+  const glass = (x > D.cl && x < D.cr ? D.yC : (D.gap && x > D.sw + 14 && x < W - D.sw - 14) ? D.ySill : D.yS) - 4;   // bottom edge of the glass at this x
   if (front && Math.abs(_b.x) < 0.93 && _b.y < 0.9 && y < glass) {
     const s = clamp(r / dist * H / (2 * Math.tan(FOV * Math.PI / 360)) * 1.5, 9, 70);
     bracket(x, y, s);
+    if (targeted) { ctx.strokeStyle = ctx.shadowColor = '#fff'; bracket(x, y, s + 5); ctx.strokeStyle = ctx.shadowColor = color; }   // your chosen target wears a second, white bracket
     if (locked) { ctx.beginPath(); ctx.moveTo(x, y - s - 6); ctx.lineTo(x + s + 6, y); ctx.lineTo(x, y + s + 6); ctx.lineTo(x - s - 6, y); ctx.closePath(); ctx.stroke(); }
     if (label) {                          // name small, range large enough to read at a glance
       const fs = Math.round(clamp(H * 0.045, 16, 26)), yl = y + s + (locked ? 8 : 2) + fs;
@@ -1103,6 +1251,7 @@ function marker(pos, color, r, label, locked) {        // bracket when visible, 
   } else {
     const a = (Math.abs(lx) + Math.abs(ly) < 1e-3) ? Math.PI / 2 : Math.atan2(-ly, lx);
     const gy = D.yC / 2, ax = W / 2 + Math.cos(a) * W * 0.33, ay = gy + Math.sin(a) * (gy - 22);
+    if (targeted) ctx.strokeStyle = ctx.fillStyle = '#fff';
     ctx.save(); ctx.translate(ax, ay); ctx.rotate(a);
     ctx.beginPath(); ctx.moveTo(11, 0); ctx.lineTo(-6, -7); ctx.lineTo(-2, 0); ctx.lineTo(-6, 7); ctx.closePath(); ctx.stroke();
     if (!front) ctx.fill();                                // solid = behind you
@@ -1144,9 +1293,9 @@ function annunciator() {                 // what the strip shows right now: [tex
   const bl = (S.time * 3 | 0) % 2;
   if (S.mode === 'warp') return ['W A R P', bl ? '#fff' : CG];
   const speaking = S.comm && S.comm.t > 0;
-  if (S.msgT > 0 && (!speaking || S.msgC === CR)) return [S.msg, S.msgC];   // only red alerts talk over a caller
+  if (S.msgT > 0 && (!speaking || S.msgC !== CG)) return [S.msg, S.msgC];   // red and white alerts talk over a caller; routine green prompts do not
   if (speaking) { const c = S.comm; return [c.text.slice(0, Math.floor(c.t * COMM_CPS) + 1), c.sp.hostile ? CR : CG, true, c.sp]; }
-  if (S.docked) { const full = S.energy >= 99.5 && S.shield >= 99.5; return [full ? 'READY   TAP LAUNCH' : 'DOCKED   REFUELING', full && bl ? '#fff' : CG]; }
+  if (S.docked) { const full = S.energy >= 99.5 && S.shield >= 99.5 && S.dockT > T.dockTime; return [full ? 'READY   TAP LAUNCH' : 'DOCKED   REFUELING', full && bl ? '#fff' : CG]; }
   if (S.energy < 20) return ['ENERGY LOW  DOCK AT A BASE', bl ? CR : '#fff'];
   return ['', CG];
 }
@@ -1164,7 +1313,7 @@ function drawCockpit() {
 
   // --- centre console: SCAN key (DOM) on the left, radar scope
   const r = D.r, ry = yC + 55;
-  if (S.comm && S.comm.t > 0) drawComm(cx, ry, r + 2); else {
+  if (S.comm && S.comm.t > 0) drawComm(cx, ry, r + 2); else if (S.target) drawTarget(cx, ry, r + 2); else {
   ctx.strokeStyle = CG; ctx.beginPath(); ctx.arc(cx, ry, r, 0, 7); ctx.stroke();
   ctx.strokeStyle = CGD; ctx.beginPath(); ctx.arc(cx, ry, r / 2, 0, 7);
   ctx.moveTo(cx - r, ry); ctx.lineTo(cx + r, ry); ctx.moveTo(cx, ry - r); ctx.lineTo(cx, ry + r); ctx.stroke();
@@ -1261,8 +1410,8 @@ function drawTicker(yT) {                // "subspace radio" teletype: boxed gre
 function drawFlightHUD() {
   ctx.lineWidth = 1.5; ctx.shadowColor = CG; ctx.shadowBlur = 5;
   // canopy-projected gunsight: target brackets, off-glass arrows, crosshair
-  for (const e of enemies) marker(e.o.position, CR, e.def.r, e === S.lock ? e.def.name : '', e === S.lock);
-  if (baseObj) marker(baseObj.position, CGD, 34, 'BASE', false);
+  for (const e of enemies) marker(e.o.position, CR, e.def.r, e === S.lock || e === S.target ? e.def.name : '', e === S.lock, e === S.target);
+  if (baseObj) marker(baseObj.position, CGD, 34, 'BASE', false, S.target === BASE_T);
   const cx = W / 2, cy = dash().yC / 2, c = S.lock ? '#fff' : CG; ctx.strokeStyle = c; ctx.shadowColor = c;
   ctx.beginPath();
   if (S.aft) {                             // aft sight: -- --
@@ -1291,7 +1440,8 @@ function drawMap() {
 
   ctx.lineWidth = 1.5; ctx.shadowBlur = 5;
   for (const b of bases) {                                   // bases: ring + hp bar
-    if (b.hp <= 0) continue; const [x, y] = cen(b.x, b.y), s = cs * 0.2, hot = S.sys.COM && fleetAt(b.x, b.y);
+    if (b.hp <= 0 && S.sys.COM) continue;                  // with comms out the chart still shows the last known picture
+    const [x, y] = cen(b.x, b.y), s = cs * 0.2, hot = S.sys.COM && fleetAt(b.x, b.y);
     const c = hot && (S.time * 4 | 0) % 2 ? CR : CG; ctx.strokeStyle = ctx.fillStyle = ctx.shadowColor = c;
     ctx.beginPath(); ctx.arc(x, y - 3, s, 0, 7); ctx.moveTo(x - s, y - 3); ctx.lineTo(x + s, y - 3); ctx.moveTo(x, y - 3 - s); ctx.lineTo(x, y - 3 + s); ctx.stroke();
     text(b.name, x, y - s - 7, 8, 'center');
@@ -1328,7 +1478,7 @@ function drawMap() {
     if (f && (S.sys.COM || here)) line(`${f.comp.length} HOSTILE${f.comp.length > 1 ? 'S' : ''}`, CR);
     py += 4;
     if (here) line('YOU ARE HERE');
-    else if (cost > S.energy && b) { line(`JUMP ${d}`); line('EMERGENCY JUMP', '#fff'); line('EMPTIES TANK', CR); line('DROPS SHIELDS', CR); line('BREAKS A SYSTEM', CR); line(`TIME +${(d * 2 * T.warpDays / 10).toFixed(1)}`); can = true; }
+    else if (cost > S.energy && b) { line(`JUMP ${d}`); line('EMERGENCY JUMP', '#fff'); line('EMPTIES TANK', CR); line('DROPS SHIELDS', CR); if (S.sys.RAD || S.sys.COM || S.sys.ENG) line('BREAKS A SYSTEM', CR); line(`TIME +${(d * 2 * T.warpDays / 10).toFixed(1)}`); can = true; }
     else { line(`JUMP ${d}`); line(`COST ${cost} EN`, cost > S.energy ? CR : CG); line(`TIME +${(d * T.warpDays / 10).toFixed(1)}`); can = cost <= S.energy; }
   } else line('TAP A SECTOR');
   if (!S.sys.COM) { py += 4; line('COMMS DOWN', CR); line('FLEETS HIDDEN', CR); }
@@ -1349,9 +1499,10 @@ function drawHUD(dt) {
 //  GAME FLOW
 // =====================================================================
 function startGame() {
-  unlockAudio(); $('ini').blur();
+  if (S.mode === 'over' && S.time - S.overT < 1.2) return;      // a key or tap meant for the game must not skip the result
+  unlockAudio(); $('ini').blur(); saving = false;
   Object.assign(S, { score: 0, wave: 0, date: 0, energy: 100, shield: 100, pr: 0, yr: 0, fireCD: 0, dockCD: 0,
-                     shake: 0, flash: 0, wflash: 0, waveT: 0, sel: null, msgT: 0, wpn: 0, charge: 100, comm: null, commQ: [], lowHail: false, shieldT: 0, dockWarn: 0, jumped: true, warpTo: null, lock: null });
+                     shake: 0, flash: 0, wflash: 0, waveT: 0, sel: null, msgT: 0, wpn: 0, charge: 100, comm: null, commQ: [], lowHail: false, shieldT: 0, dockWarn: 0, jumped: true, warpTo: null, lock: null, target: null, subI: 0 });
   S.sys = { RAD: 1, COM: 1, ENG: 1 }; S.ammo = { m: 8, t: 3 }; wpnLabel();
   bases = [{ x: 1, y: 3, hp: 100, home: true, name: 'HOME' }, { x: 4, y: 1, hp: 100, name: 'BETA' }, { x: 3, y: 5, hp: 100, name: 'GAMMA' }];
   fleets = []; S.sx = 1; S.sy = 3;
@@ -1363,9 +1514,9 @@ function startGame() {
 function gameOver(why) {
   explode(ship.position.clone().addScaledVector(shipFwd(_a), 12), 14, RED); sfx.boom(true);
   $('why').textContent = why; $('fin').textContent = `SCORE ${S.score}   WAVE ${S.wave}`;
-  $('saveRow').style.display = S.score > 0 ? 'flex' : 'none'; $('bSave').textContent = 'SAVE SCORE'; $('hi2').textContent = '';
+  $('saveRow').style.display = S.score > 0 ? 'flex' : 'none'; $('bSave').textContent = 'SAVE SCORE';
   $('bMap').classList.remove('alert'); S.comm = null; S.commQ = [];
-  camera.fov = FOV; camera.updateProjectionMatrix(); camera.rotation.z = 0; setMode('over');
+  camera.fov = FOV; camera.updateProjectionMatrix(); camera.rotation.z = 0; S.overT = S.time; setMode('over'); loadScores();
 }
 function showScores(list) {
   const t = Array.isArray(list) && list.length ? 'HIGH SCORES\n' + list.slice(0, 5).map((s, i) =>
@@ -1408,7 +1559,7 @@ function frame(now) {
     const on = S.sound && (S.mode === 'flight' || S.mode === 'warp');
     humG.gain.value = on ? 0.05 + S.speed / 2500 : 0; hum.frequency.value = 38 + S.speed * (S.mode === 'warp' ? 3 : 0.7);
   }
-  rockLabel();
+  rockLabel(); targetUI(); portraitPause();
   renderer.render(scene, camera);
   drawHUD(dt);
 }
@@ -1418,7 +1569,7 @@ ship.position.set(0, 0, 0); planet.position.set(900, 200, -1300); planet.scale.s
 requestAnimationFrame(frame);
 
 // debug handle for poking at the prototype from the console
-window.SG = { S, T, get fleets() { return fleets; }, get bases() { return bases; }, get enemies() { return enemies; }, get bolts() { return bolts; }, get ords() { return ords; }, cycleWeapon, toggleView, hail, faceOK: !!face, input, startGame, openMap, tryWarp, ship };
+window.SG = { S, T, get fleets() { return fleets; }, get bases() { return bases; }, get enemies() { return enemies; }, get bolts() { return bolts; }, get ords() { return ords; }, cycleWeapon, toggleView, hail, setTarget, cycleSub, pickAt, BASE_T, faceOK: !!face, input, startGame, openMap, tryWarp, ship };
 </script>
 </body>
 </html>
