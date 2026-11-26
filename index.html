@@ -425,6 +425,7 @@ document.querySelectorAll('[data-hold]').forEach(b => {
 let rockDocked = null;
 function rockLabel() {                    // the top half of the throttle rocker reads LAUNCH while docked
   $('bBrake').classList.toggle('off', S.docked || S.throttle <= 0);    // nothing slower than stopped
+  $('bBoost').classList.toggle('alert', S.docked && S.mode === 'flight');   // LAUNCH flashes while you are docked
   if (S.docked === rockDocked) return; rockDocked = S.docked;
   $('bBoost').innerHTML = S.docked ? '<small>&#9650;&#9650;</small>LAUNCH' : '<small>&#9650;</small>FASTER<small>HOLD: BOOST</small>';
 }
