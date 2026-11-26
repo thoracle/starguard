@@ -14,7 +14,7 @@
   --g:#39ff6a; --gd:#1c7a38; --r:#ff4a3a;
   --esl:env(safe-area-inset-left,0px); --esr:env(safe-area-inset-right,0px);
   --est:env(safe-area-inset-top,0px);  --esb:env(safe-area-inset-bottom,0px);
-  --sl:var(--esl); --sr:var(--esr); --st:var(--est); --sb:var(--esb); --tk:28px; --cl:264px; --cr:580px;   /* --sl..--sb, --tk, --cl are overwritten from JS in resize() */
+  --sl:var(--esl); --sr:var(--esr); --st:var(--est); --sb:var(--esb); --tk:28px; --cl:264px; --cr:580px; --bw:58px;   /* --sl..--sb, --tk, --cl are overwritten from JS in resize() */
 }
 *{box-sizing:border-box;touch-action:none}
 input{touch-action:manipulation}
@@ -57,8 +57,8 @@ body[data-mode=map] .mo{display:flex}
 #bBrake{bottom:calc(var(--sb) + var(--tk) + 12px);border-radius:3px 3px 12px 12px}
 #bWpn{width:56px;height:110px;right:calc(var(--sr) + 186px);bottom:calc(var(--sb) + var(--tk) + 12px);border-radius:8px;font-size:11px;letter-spacing:0;gap:6px}
 #bWpn .am{font-size:16px;color:#fff}
-#bMap{width:58px;height:78px;left:calc(var(--cr) - 66px);bottom:calc(var(--sb) + var(--tk) + 13px);border-radius:8px;font-size:12px}
-#bView{width:58px;height:78px;left:calc(var(--cl) + 8px);bottom:calc(var(--sb) + var(--tk) + 13px);border-radius:8px;font-size:12px;gap:6px}
+#bMap{width:var(--bw);height:78px;left:calc(var(--cr) - 8px - var(--bw));bottom:calc(var(--sb) + var(--tk) + 13px);border-radius:8px;font-size:12px}
+#bView{width:var(--bw);height:78px;left:calc(var(--cl) + 8px);bottom:calc(var(--sb) + var(--tk) + 13px);border-radius:8px;font-size:12px;gap:6px}
 #bPause{width:38px;height:34px;right:calc(var(--sr) + 10px);top:calc(var(--st) + 8px);border-radius:6px;font-size:12px;opacity:.6;box-shadow:none}
 #bWarp{width:128px;height:62px;right:calc(var(--sr) + 12px);bottom:calc(var(--sb) + 14px);border-radius:8px;font-size:18px}
 #bBack{width:128px;height:44px;right:calc(var(--sr) + 12px);bottom:calc(var(--sb) + 86px);border-radius:8px}
@@ -77,7 +77,7 @@ h2{margin:0;font-size:clamp(20px,7vh,40px);letter-spacing:.18em;font-weight:norm
   text-shadow:0 0 5px var(--g);box-shadow:0 0 10px rgba(57,255,106,.45)}
 .tb:active{background:rgba(57,255,106,.4);color:#fff}
 .row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;align-items:center}
-#hi{font-size:11px;line-height:1.4;white-space:pre;opacity:.85;min-height:14px}
+#hi,#hi2{font-size:11px;line-height:1.4;white-space:pre;opacity:.85;min-height:14px}
 #ini{width:84px;background:#000;border:2px solid var(--g);color:#fff;text-align:center;border-radius:6px;
   font:bold 20px "Courier New",monospace;letter-spacing:4px;padding:6px;text-transform:uppercase;
   -webkit-user-select:text;user-select:text;outline:none}
@@ -140,6 +140,7 @@ h2{margin:0;font-size:clamp(20px,7vh,40px);letter-spacing:.18em;font-weight:norm
     <div class="tb" id="bSave">SAVE SCORE</div>
   </div>
   <div class="tb" id="bAgain">PLAY AGAIN</div>
+  <div id="hi2"></div>
 </div>
 
 <div id="rot">ROTATE DEVICE<br>TO LANDSCAPE</div>
@@ -155,7 +156,7 @@ import * as THREE from 'three';
 // =====================================================================
 const T = {
   cruise: 40, boost: 95,                    // ship speeds (units/s): default throttle, and held boost
-  throttleStep: 10, throttleMax: 60, longPress: 0.35,   // tap = one step; hold this long (s) = boost / full stop
+  throttleStep: 10, throttleMax: 50, longPress: 0.35,   // tap = one step; hold this long (s) = boost / full stop
   turn: 1.55,                               // max pitch/yaw rate (rad/s)
   fireGap: 0.13, laserSpeed: 650,
   laserHeat: 3, chargeRate: 9, chargeCost: 0.04,   // laser capacitor: drain per shot, recharge/s, energy per point recharged
@@ -213,7 +214,7 @@ function resize() {
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   SAFE = readSafe();
   for (const k of ['l', 'r', 't', 'b']) document.documentElement.style.setProperty('--s' + k, SAFE[k] + 'px');
-  document.documentElement.style.setProperty('--cl', dash().cl + 'px'); document.documentElement.style.setProperty('--cr', dash().cr + 'px');
+  document.documentElement.style.setProperty('--cl', dash().cl + 'px'); document.documentElement.style.setProperty('--cr', dash().cr + 'px'); document.documentElement.style.setProperty('--bw', dash().bw + 'px');
   camera.setViewOffset(W, H, 0, H / 2 - dash().yC / 2, W, H);   // aim point = centre of the canopy glass, not of the screen
   stickHome();
 }
@@ -267,7 +268,7 @@ function mkBase() {
 const ET = {
   F: { name: 'RAIDER',  proto: mkFighter(), hp: 1, r: 5.5, speed: 52, turn: 1.6, rate: 2.4, cone: 0.93, pts: 100, spin: 'z', brk: 60 },
   S: { name: 'SAUCER',  proto: mkSaucer(),  hp: 4, r: 7,   speed: 40, turn: 2.4, rate: 1.7, cone: 0.80, pts: 150, spin: 'y', brk: 80 },
-  C: { name: 'CRUISER', proto: mkCruiser(), hp: 20, r: 13,  speed: 22, turn: 0.5, rate: 1.1, cone: -1,   pts: 500, spin: null, brk: 110 },
+  C: { name: 'CRUISER', proto: mkCruiser(), hp: 18, r: 13,  speed: 22, turn: 0.5, rate: 1.1, cone: -1,   pts: 500, spin: null, brk: 110 },
 };
 function instance(proto) {
   const o = proto.clone(), mats = [];
@@ -334,6 +335,7 @@ function setMode(m) {
     input.fire = input.boost = false; stickEnd();
     document.querySelectorAll('.btn.on').forEach(b => b.classList.remove('on'));
   }
+  $('bView').classList.toggle('on', S.aft);           // AFT stays lit across a visit to the map or pause
 }
 function say(t, color = CG, dur = 2.6) { S.msg = t; S.msgT = dur; S.msgC = color; }
 
@@ -475,7 +477,7 @@ $('mz').addEventListener('pointerdown', e => {
 });
 
 window.addEventListener('keydown', e => {
-  if (e.target === $('ini')) return;
+  if (e.target === $('ini')) { if (e.code === 'Enter') saveScore(); return; }
   keys[e.code] = true; unlockAudio();
   if (e.code === 'KeyQ' && !e.repeat) cycleWeapon();
   if (e.code === 'KeyV' && !e.repeat) toggleView();
@@ -509,6 +511,10 @@ if (window.visualViewport) window.visualViewport.addEventListener('resize', () =
     m.setAttribute('content', c + ',minimum-scale=1'); setTimeout(() => m.setAttribute('content', c), 50);
   }
 });
+for (const ev of ['touchend', 'pointerup', 'click']) document.addEventListener(ev, unlockAudio, { passive: true });   // the gestures iOS accepts for starting audio
+const portrait = window.matchMedia('(orientation:portrait) and (max-width:700px)');    // same test as the ROTATE DEVICE overlay
+const portraitPause = () => { if (portrait.matches && (S.mode === 'flight' || S.mode === 'map')) { S.prev = S.mode; setMode('pause'); } };
+if (portrait.addEventListener) portrait.addEventListener('change', portraitPause); else if (portrait.addListener) portrait.addListener(portraitPause);
 document.addEventListener('contextmenu', e => e.preventDefault());
 document.addEventListener('visibilitychange', () => {
   if (document.hidden && (S.mode === 'flight' || S.mode === 'map')) { S.prev = S.mode; setMode('pause'); }
@@ -522,11 +528,13 @@ const fleetAt = (x, y) => fleets.find(f => f.x === x && f.y === y);
 const stepTime = () => Math.max(9, T.fleetStep - (S.wave - 1) * 2);
 
 function mkComp(w) {
-  const r = Math.random();
-  if (w === 1) return r < 0.6 ? ['F', 'F'] : ['F', 'F', 'F'];
-  if (r < 0.35) return ['F', 'F', 'F'];
-  if (r < 0.7) return ['F', 'F', 'S'].concat(w > 3 ? ['S'] : []);
-  return ['C', 'F'].concat(w > 2 ? ['F'] : []);
+  const r = Math.random(); let c;
+  if (w === 1) c = r < 0.6 ? ['F', 'F'] : ['F', 'F', 'F'];
+  else if (r < 0.35) c = ['F', 'F', 'F'];
+  else if (r < 0.7) c = ['F', 'F', 'S'].concat(w > 3 ? ['S'] : []);
+  else c = ['C', 'F'].concat(w > 2 ? ['F'] : []);
+  for (let k = 5; k < w && c.length < 6; k += 2) c.push('F');   // keep growing after wave 5: one more raider every two waves, up to 6 ships
+  return c;
 }
 function startWave(n) {
   S.wave = n;
@@ -538,14 +546,15 @@ function startWave(n) {
       const d = Math.min(cheb(x, y, S.sx, S.sy), ...live.map(b => cheb(x, y, b.x, b.y)));
       cells.push({ x, y, d });
     }
-    const far = cells.filter(c => c.d >= 3), pool = far.length ? far : cells.filter(c => c.d >= 2);
+    const edge = c => c.x === 0 || c.x === COLS - 1 || c.y === 0 || c.y === ROWS - 1;
+    const wide = cells.filter(c => c.d >= 3 || (c.d >= 2 && edge(c))), pool = wide.length ? wide : cells.filter(c => c.d >= 2);
     if (!pool.length) break;
     const c = pool[Math.random() * pool.length | 0];
     fleets.push({ x: c.x, y: c.y, comp: mkComp(n), t: rand(0, stepTime() * 0.5), target: live[Math.random() * live.length | 0] });
   }
   sfx.alarm();
   hail('HOME', () => n === 1 ? `Starguard, this is Home Control. ${fleets.length} raider fleets inbound. Open your scan and intercept.`
-                       : `Home Control. New contacts, ${fleets.length} raider fleets on the board. Wave ${n}.`, 1, 'count');
+                       : `Home Control. New contacts, ${fleets.length} raider fleets on the board. Wave ${n}.`, 1, 'wave');
 }
 // True once the player is actually in sector S.sx,S.sy. During a warp that is from the jump onward, not only once the
 // warp animation ends: fleets used to slip in or out of the sector in that gap, leaving the chart and the sector out of step.
@@ -559,14 +568,15 @@ function moveFleet(f) {
   }
   const b = f.target; if (f.x === b.x && f.y === b.y) return;
   const nx = f.x + Math.sign(b.x - f.x), ny = f.y + Math.sign(b.y - f.y);
-  if (fleets.some(o => o !== f && o.x === nx && o.y === ny)) {
-    if (nx === b.x && ny === b.y) { const free = bases.filter(o => o.hp > 0 && o !== b && !fleetAt(o.x, o.y)); if (free.length) f.target = pick(free); }
+  if (fleets.some(o => o !== f && o.x === nx && o.y === ny)) {       // blocked: by a fleet already on our target, or stuck in a queue
+    f.stuck = (f.stuck || 0) + 1;
+    if ((nx === b.x && ny === b.y) || f.stuck >= 3) { const free = bases.filter(o => o.hp > 0 && o !== b && !fleetAt(o.x, o.y)); if (free.length) { f.target = pick(free); f.stuck = 0; } }
     return;
   }
-  f.x = nx; f.y = ny;
+  f.x = nx; f.y = ny; f.stuck = 0;
   if (nx === S.sx && ny === S.sy && inSector()) {
     spawnFleet(f); say('ALERT  FLEET WARPING IN', CR); sfx.alarm(); hail('RAIDER', pick(TAUNTS.arrive), 0);
-  } else if (nx === b.x && ny === b.y) { sfx.alarm(); hail(b.name, `Mayday, mayday. ${stationName(b)} is under attack. We need you here, Starguard.`, 2); }
+  } else if (nx === b.x && ny === b.y) { if (S.sys.COM) sfx.alarm(); hail(b.name, () => b.hp > 0 && fleetAt(b.x, b.y) ? `Mayday, mayday. ${stationName(b)} is under attack. We need you here, Starguard.` : null, 2); }
 }
 function updStrategy(dt) {
   S.date += dt;
@@ -576,7 +586,7 @@ function updStrategy(dt) {
   for (const f of fleets) {
     const b = baseAt(f.x, f.y); if (!b) continue;
     b.hp -= dt * f.comp.length * T.baseDrain;
-    if (b.hp < 35 && b.hp > 0 && !b.warned) { b.warned = true; hail(b.name, `${stationName(b)}. Hull breaches on three decks. We cannot hold much longer.`, 2); }
+    if (b.hp < 35 && b.hp > 0 && !b.warned) { b.warned = true; hail(b.name, () => b.hp > 0 ? `${stationName(b)}. Hull breaches on three decks. We cannot hold much longer.` : null, 2); }
     if (b.hp <= 0) {
       b.hp = 0;
       if (b === curBase && baseObj) { explode(baseObj.position, 30); scene.remove(baseObj); baseObj = null; curBase = null; S.docked = false; }
@@ -585,9 +595,9 @@ function updStrategy(dt) {
     }
   }
   if (!fleets.length && S.waveT <= 0) {
-    S.waveT = 4; S.score += 1000 * S.wave; say(`WAVE ${S.wave} CLEAR  +${1000 * S.wave}`, '#fff', 3.5); sfx.dock();
+    S.waveT = 8; S.score += 1000 * S.wave; say(`WAVE ${S.wave} CLEAR  +${1000 * S.wave}`, '#fff', 2.2); sfx.dock();
     hail('HOME', 'The board is clear. Outstanding work, Starguard. Stand by for new contacts.', 1, 'count');
-    for (const b of bases) if (b.hp > 0) b.hp = Math.min(100, b.hp + 25);
+    for (const b of bases) if (b.hp > 0) { b.hp = Math.min(100, b.hp + 25); if (b.hp > 50) b.warned = false; }
   }
   if (S.waveT > 0) { S.waveT -= dt; if (S.waveT <= 0 && !fleets.length) startWave(S.wave + 1); }
   $('bMap').classList.toggle('alert', !!S.sys.COM && fleets.some(f => baseAt(f.x, f.y)));
@@ -614,16 +624,19 @@ function enterSector() {
   planet.position.set(Math.cos(h * 40) * 1500, (h - 0.5) * 900, Math.sin(h * 40) * 1500);
   planet.scale.setScalar(160 + h * 260);
 }
+const ORIGIN = V();
 function spawnFleet(f) {
+  // mid-warp the ship is still short of the drop-out point (the sector origin, facing -z), so arrivals are placed around that instead
+  const warping = S.mode === 'warp', at = warping ? ORIGIN : ship.position;
   for (const t of f.comp) {
     const def = ET[t], inst = instance(def.proto), e = {
       o: new THREE.Group(), model: inst.o, mats: inst.mats, def, type: t, fleet: f, hp: def.hp,
       cd: rand(1, 3), mode: 'attack', modeT: 0, evade: V(), vel: V(), flash: 0, ramCD: 0,
     };
     e.o.add(inst.o);
-    _a.set(rand(-0.9, 0.9), rand(-0.35, 0.35), -rand(0.5, 1)).normalize().applyQuaternion(ship.quaternion);
-    e.o.position.copy(ship.position).addScaledVector(_a, rand(300, 460));
-    e.o.lookAt(ship.position); scene.add(e.o); enemies.push(e);
+    _a.set(rand(-0.9, 0.9), rand(-0.35, 0.35), -rand(0.5, 1)).normalize(); if (!warping) _a.applyQuaternion(ship.quaternion);
+    e.o.position.copy(at).addScaledVector(_a, rand(300, 460));
+    e.o.lookAt(at); scene.add(e.o); enemies.push(e);
   }
 }
 function explode(p, size, color = G) {
@@ -655,7 +668,7 @@ function fireLaser() {
   } else aim.copy(ship.position).addScaledVector(viewFwd(_a), 320);
   const dir = aim.sub(pos).normalize(), o = new THREE.Line(LASER_GEO, LASER_MAT);
   o.position.copy(pos); o.lookAt(_a.copy(pos).add(dir)); scene.add(o);
-  lasers.push({ o, vel: dir.multiplyScalar(T.laserSpeed), life: 0.95 });
+  lasers.push({ o, vel: dir.multiplyScalar(T.laserSpeed), life: 1.05 });   // reach just past the lock range
 }
 function fireBolt(e, dist) {
   const p = e.o.position;
@@ -694,7 +707,7 @@ function fireOrdnance(kind) {                       // 1 = homing missile, 2 = a
 function detonate(d) {
   const p = d.o.position;
   explode(p, 26, 0xffffff); sfx.boom(true); S.shake = Math.max(S.shake, 0.25);
-  for (const e of enemies.slice()) { const dist = e.o.position.distanceTo(p); if (dist < T.torpBlast) damageEnemy(e, dist < T.torpBlast * 0.55 ? T.torpDmg : T.torpDmg / 2); }
+  for (const e of enemies.slice()) { const dist = e.o.position.distanceTo(p); if (dist < T.torpBlast) damageEnemy(e, dist < Math.max(T.torpBlast * 0.55, e.def.r + 16) ? T.torpDmg : T.torpDmg / 2); }
   for (let j = bolts.length - 1; j >= 0; j--) if (bolts[j].o.position.distanceTo(p) < T.torpBlast) { scene.remove(bolts[j].o); bolts.splice(j, 1); }
 }
 function updOrds(dt) {
@@ -746,7 +759,11 @@ function damageEnemy(e, d) {
 function hitPlayer(dmg) {
   if (S.mode !== 'flight') return;
   S.flash = 0.45; S.shake = 0.4; S.shieldT = T.shieldDelay; sfx.hit();
-  if (S.shield > 0) { S.shield = Math.max(0, S.shield - dmg); if (S.shield === 0) { say('SHIELDS DOWN', CR); if (enemies.length) hail('RAIDER', pick(TAUNTS.shield), 0); } return; }
+  if (S.shield > 0) {
+    const left = S.shield - dmg; S.shield = Math.max(0, left);
+    if (S.shield === 0) { say('SHIELDS DOWN', CR); if (enemies.length) hail('RAIDER', pick(TAUNTS.shield), 0); }
+    if (left > -dmg * 0.5) return;                    // absorbed; otherwise most of the hit overshot what was left
+  }
   const ok = Object.keys(S.sys).filter(k => S.sys[k]);
   if (!ok.length) return gameOver('SHIP DESTROYED');
   const k = ok[Math.random() * ok.length | 0]; S.sys[k] = 0;
@@ -778,7 +795,7 @@ function updEnemy(e, dt) {
   if (e.ramCD > 0) e.ramCD -= dt;
   else if (dist < def.r + 3) {
     e.ramCD = 1.5; e.mode = 'evade'; e.modeT = 2.5; e.evade.subVectors(p, ship.position).normalize();
-    hitPlayer(25); damageEnemy(e, 3);
+    damageEnemy(e, 3); hitPlayer(25);                   // score the ram before a fatal hit freezes the final score
   }
 }
 
@@ -842,9 +859,9 @@ function updFlight(dt) {
     if (!w.key) {
       if (S.charge >= T.laserHeat) { fireLaser(); S.fireCD = T.fireGap; }
       else if (S.energy <= 0) { sfx.deny(); S.fireCD = 0.4; say('NO ENERGY   RETURN TO BASE', CR); }
-    } else if (S.wpn === 2 && !S.aft) { sfx.deny(); S.fireCD = 0.5; say('TORPEDOES DROP AFT   SWITCH VIEW', CR); }
-    else if (S.ammo[w.key] > 0) { fireOrdnance(S.wpn); S.fireCD = S.wpn === 1 ? T.missileGap : T.torpGap; }
-    else { sfx.deny(); S.fireCD = 0.5; say(`NO ${w.plural}   DOCK TO REARM`, CR); }
+    } else if (S.ammo[w.key] <= 0) { sfx.deny(); S.fireCD = 0.5; say(`NO ${w.plural}   DOCK TO REARM`, CR); }
+    else if (S.wpn === 2 && !S.aft) { sfx.deny(); S.fireCD = 0.5; say('TORPEDOES DROP AFT   SWITCH VIEW', CR); }
+    else { fireOrdnance(S.wpn); S.fireCD = S.wpn === 1 ? T.missileGap : T.torpGap; }
   }
 
   for (let i = enemies.length - 1; i >= 0; i--) { updEnemy(enemies[i], dt); if (S.mode !== 'flight') return; }
@@ -857,7 +874,7 @@ function updFlight(dt) {
     for (let j = enemies.length - 1; j >= 0 && !dead; j--)
       if (segHit(a, b, enemies[j].o.position, enemies[j].def.r)) { damageEnemy(enemies[j], 1); dead = true; }
     for (let j = bolts.length - 1; j >= 0 && !dead; j--)       // you can shoot shots down
-      if (segHit(a, b, bolts[j].o.position, 2.6)) { explode(bolts[j].o.position, 2, RED); scene.remove(bolts[j].o); bolts.splice(j, 1); S.score += 10; dead = true; }
+      if (segHit(a, b, bolts[j].o.position, 2.6)) { explode(bolts[j].o.position, 2, RED); scene.remove(bolts[j].o); bolts.splice(j, 1); dead = true; }   // no score: it would be an endless farm against a parked fleet
     if (dead) { scene.remove(l.o); lasers.splice(i, 1); }
   }
   for (let i = bolts.length - 1; i >= 0; i--) {
@@ -889,8 +906,9 @@ function tryWarp() {
   if (x === S.sx && y === S.sy) return sfx.deny();
   const cost = warpCost(x, y), emergency = S.energy < cost;
   if (emergency && !baseAt(x, y)) { say('INSUFFICIENT ENERGY', CR); return sfx.deny(); }
-  // emergency jump: only to a base, drains the tank and the shields, and takes twice as long
-  if (emergency) { S.energy = 0; S.shield = 0; } else S.energy -= cost;
+  // emergency jump: only to a base; drains the tank and the shields, burns out one system, and takes twice as long
+  if (emergency) { S.energy = 0; S.shield = 0; const ok = Object.keys(S.sys).filter(k => S.sys[k]); if (ok.length) { const k = pick(ok); S.sys[k] = 0; if (k === 'COM') { S.comm = null; S.commQ = []; } } }
+  else S.energy -= cost;
   S.warpTo = { x, y, d: cheb(x, y, S.sx, S.sy) * (emergency ? 2 : 1) }; S.warpT = 0; S.jumped = false;
   S.docked = false; setView(false); setMode('warp'); sfx.warp();
 }
@@ -905,6 +923,7 @@ function updWarp(dt) {
     const days = S.warpTo.d * T.warpDays;                    // long jumps cost time: the fleets keep moving
     S.sx = S.warpTo.x; S.sy = S.warpTo.y; S.sel = null;
     S.date += days; for (const f of fleets) f.t += days;
+    for (const f of fleets) { const b = baseAt(f.x, f.y); if (b) b.hp = Math.max(1, b.hp - days * f.comp.length * T.baseDrain); }   // a base under attack keeps taking damage while you travel
     enterSector();
     ship.position.z = 0.5 * WARP_LEN * 40 + 900 * WARP_LEN / Math.PI;   // back off by the distance the rest of the warp covers, so we drop out at the sector origin
   }
@@ -953,17 +972,21 @@ function hail(who, line, pri = 1, tag = null) {   // pri 0 = chatter, dropped if
 function openChannel(h) {
   h.text = typeof h.line === 'function' ? h.line() : h.line;
   if (!h.text) return false;
-  S.comm = h; sfx.hail(); return true;
+  S.comm = h; return true;
 }
 function updComm(dt) {
   while (!S.comm && S.commQ.length) openChannel(S.commQ.shift());
   if (!S.comm) return;
-  const c = S.comm; if (S.msgT > 0 && c.t === 0) return;   // hold the line open until the alert has been read
+  const c = S.comm;
+  if (c.t === 0) {                           // wait for an alert to be read first, but never more than a few seconds
+    if (S.msgT > 0 && (c.wait = (c.wait || 0) + dt) < 4) return;
+    sfx.hail();
+  }
   c.t += dt;
   const typing = c.t * COMM_CPS < c.text.length;
   c.talk = typing ? 0.3 + 0.7 * Math.abs(Math.sin(c.t * 19) * Math.sin(c.t * 6.3)) : Math.max(0, c.talk - dt * 6);
   if (typing) { c.bt -= dt; if (c.bt <= 0) { c.bt = 0.075; const f = c.sp.pitch * rand(0.9, 1.3); tone(f, f, 0.04, c.sp.hostile ? 'sawtooth' : 'square', 0.02); } }
-  if (c.t > c.text.length / COMM_CPS + 1.8) S.comm = null;
+  if (c.t > c.text.length / COMM_CPS + (c.sp.hostile ? 0.9 : 1.8)) S.comm = null;   // taunts clear off the scope sooner
 }
 
 // The head is a signed-distance model ray-marched in a tiny fragment shader, then drawn chunky onto the console.
@@ -1067,8 +1090,9 @@ function marker(pos, color, r, label, locked) {        // bracket when visible, 
   const dist = _a.length(), lx = _a.x, ly = _a.y, front = _a.z < 0;
   _b.copy(pos).project(camera);
   ctx.strokeStyle = ctx.fillStyle = ctx.shadowColor = color;
-  if (front && Math.abs(_b.x) < 0.93 && Math.abs(_b.y) < 0.9) {
-    const x = (_b.x + 1) / 2 * W, y = (1 - _b.y) / 2 * H;
+  const x = (_b.x + 1) / 2 * W, y = (1 - _b.y) / 2 * H, D = dash();
+  const glass = (x > D.cl && x < D.cr ? D.yC : D.yS) - 4;     // bottom edge of the glass at this x
+  if (front && Math.abs(_b.x) < 0.93 && _b.y < 0.9 && y < glass) {
     const s = clamp(r / dist * H / (2 * Math.tan(FOV * Math.PI / 360)) * 1.5, 9, 70);
     bracket(x, y, s);
     if (locked) { ctx.beginPath(); ctx.moveTo(x, y - s - 6); ctx.lineTo(x + s + 6, y); ctx.lineTo(x, y + s + 6); ctx.lineTo(x - s - 6, y); ctx.closePath(); ctx.stroke(); }
@@ -1078,18 +1102,19 @@ function marker(pos, color, r, label, locked) {        // bracket when visible, 
     }
   } else {
     const a = (Math.abs(lx) + Math.abs(ly) < 1e-3) ? Math.PI / 2 : Math.atan2(-ly, lx);
-    const gy = dash().yC / 2, x = W / 2 + Math.cos(a) * W * 0.33, y = gy + Math.sin(a) * (gy - 22);
-    ctx.save(); ctx.translate(x, y); ctx.rotate(a);
+    const gy = D.yC / 2, ax = W / 2 + Math.cos(a) * W * 0.33, ay = gy + Math.sin(a) * (gy - 22);
+    ctx.save(); ctx.translate(ax, ay); ctx.rotate(a);
     ctx.beginPath(); ctx.moveTo(11, 0); ctx.lineTo(-6, -7); ctx.lineTo(-2, 0); ctx.lineTo(-6, 7); ctx.closePath(); ctx.stroke();
     if (!front) ctx.fill();                                // solid = behind you
     ctx.restore();
-    if (label) text(label, x - Math.cos(a) * 20, y - Math.sin(a) * 20 + 3, 9, 'center');
+    if (label) text(label, ax - Math.cos(a) * 20, ay - Math.sin(a) * 20 + 3, 9, 'center');
   }
 }
 function dash() {                       // one-piece dashboard geometry
   const sb = SAFE.b, sw = Math.max(SAFE.l + 218, SAFE.r + 250), cx = W / 2, yT = H - sb - TICK;
   const cl = Math.max(sw + 14, cx - 190), cr = W - cl;
-  return { sb, sw, cx, cl, cr, yT, yS: yT - 142, yC: yT - 106, ySill: yT - 24, gap: cl - sw > 44 };
+  const room = cr - cl - 28, bw = Math.max(30, Math.min(58, Math.floor(room * 0.36))), r = Math.max(14, Math.min(42, (room - 2 * bw) / 2));   // button width and scope radius that fit
+  return { sb, sw, cx, cl, cr, yT, bw, r, yS: yT - 142, yC: yT - 106, ySill: yT - 24, gap: cl - sw > 44 };
 }
 function icon(kind, x, y) {                // 14px vector glyphs under the status bars; uses the current stroke colour
   ctx.save(); ctx.translate(x, y); ctx.lineWidth = 1.4; ctx.lineJoin = 'round'; ctx.beginPath();
@@ -1118,8 +1143,9 @@ function vbar(label, v, x, yb, on = true) {   // segmented vertical gauge
 function annunciator() {                 // what the strip shows right now: [text, colour, alreadyTyped, speaker]
   const bl = (S.time * 3 | 0) % 2;
   if (S.mode === 'warp') return ['W A R P', bl ? '#fff' : CG];
-  if (S.msgT > 0) return [S.msg, S.msgC];
-  if (S.comm) { const c = S.comm; return [c.text.slice(0, Math.floor(c.t * COMM_CPS) + 1), c.sp.hostile ? CR : CG, true, c.sp]; }
+  const speaking = S.comm && S.comm.t > 0;
+  if (S.msgT > 0 && (!speaking || S.msgC === CR)) return [S.msg, S.msgC];   // only red alerts talk over a caller
+  if (speaking) { const c = S.comm; return [c.text.slice(0, Math.floor(c.t * COMM_CPS) + 1), c.sp.hostile ? CR : CG, true, c.sp]; }
   if (S.docked) { const full = S.energy >= 99.5 && S.shield >= 99.5; return [full ? 'READY   TAP LAUNCH' : 'DOCKED   REFUELING', full && bl ? '#fff' : CG]; }
   if (S.energy < 20) return ['ENERGY LOW  DOCK AT A BASE', bl ? CR : '#fff'];
   return ['', CG];
@@ -1137,8 +1163,8 @@ function drawCockpit() {
   ctx.shadowBlur = 3; ctx.shadowColor = CG;
 
   // --- centre console: SCAN key (DOM) on the left, radar scope
-  const r = 42, ry = yC + 55;
-  if (S.comm) drawComm(cx, ry, r + 2); else {
+  const r = D.r, ry = yC + 55;
+  if (S.comm && S.comm.t > 0) drawComm(cx, ry, r + 2); else {
   ctx.strokeStyle = CG; ctx.beginPath(); ctx.arc(cx, ry, r, 0, 7); ctx.stroke();
   ctx.strokeStyle = CGD; ctx.beginPath(); ctx.arc(cx, ry, r / 2, 0, 7);
   ctx.moveTo(cx - r, ry); ctx.lineTo(cx + r, ry); ctx.moveTo(cx, ry - r); ctx.lineTo(cx, ry + r); ctx.stroke();
@@ -1179,7 +1205,7 @@ function drawCockpit() {
     ctx.strokeStyle = CGD; ctx.beginPath();
     for (const [bx, by, br] of [[R - 59, yT - 67, 45], [L + 74, yT - 68, 58]]) { ctx.moveTo(bx + br, by); ctx.arc(bx, by, br, 0, 7); }
     ctx.rect(R - 178, yT - 122, 52, 110); ctx.moveTo(R - 178, yT - 67); ctx.lineTo(R - 126, yT - 67);
-    ctx.rect(R - 242, yT - 122, 56, 110); ctx.rect(cl + 8, yT - 91, 58, 78); ctx.rect(cr - 66, yT - 91, 58, 78); ctx.stroke();
+    ctx.rect(R - 242, yT - 122, 56, 110); ctx.rect(cl + 8, yT - 91, D.bw, 78); ctx.rect(cr - 8 - D.bw, yT - 91, D.bw, 78); ctx.stroke();
   }
   drawTicker(yT);
   ctx.shadowBlur = 0;
@@ -1265,11 +1291,11 @@ function drawMap() {
 
   ctx.lineWidth = 1.5; ctx.shadowBlur = 5;
   for (const b of bases) {                                   // bases: ring + hp bar
-    if (b.hp <= 0) continue; const [x, y] = cen(b.x, b.y), s = cs * 0.2, hot = fleetAt(b.x, b.y);
+    if (b.hp <= 0) continue; const [x, y] = cen(b.x, b.y), s = cs * 0.2, hot = S.sys.COM && fleetAt(b.x, b.y);
     const c = hot && (S.time * 4 | 0) % 2 ? CR : CG; ctx.strokeStyle = ctx.fillStyle = ctx.shadowColor = c;
     ctx.beginPath(); ctx.arc(x, y - 3, s, 0, 7); ctx.moveTo(x - s, y - 3); ctx.lineTo(x + s, y - 3); ctx.moveTo(x, y - 3 - s); ctx.lineTo(x, y - 3 + s); ctx.stroke();
     text(b.name, x, y - s - 7, 8, 'center');
-    ctx.strokeRect(x - s, y + s + 1, s * 2, 4); ctx.fillRect(x - s, y + s + 1, s * 2 * b.hp / 100, 4);
+    ctx.strokeRect(x - s, y + s + 1, s * 2, 4); if (S.sys.COM) ctx.fillRect(x - s, y + s + 1, s * 2 * b.hp / 100, 4);   // no comms, no status
   }
   ctx.strokeStyle = ctx.fillStyle = ctx.shadowColor = CR;
   for (const f of fleets) {                                  // fleets: red wedges + heading line
@@ -1302,7 +1328,7 @@ function drawMap() {
     if (f && (S.sys.COM || here)) line(`${f.comp.length} HOSTILE${f.comp.length > 1 ? 'S' : ''}`, CR);
     py += 4;
     if (here) line('YOU ARE HERE');
-    else if (cost > S.energy && b) { line(`JUMP ${d}`); line('EMERGENCY JUMP', '#fff'); line('DRAINS TANK', CR); line('AND SHIELDS', CR); line(`TIME +${(d * 2 * T.warpDays / 10).toFixed(1)}`); can = true; }
+    else if (cost > S.energy && b) { line(`JUMP ${d}`); line('EMERGENCY JUMP', '#fff'); line('EMPTIES TANK', CR); line('DROPS SHIELDS', CR); line('BREAKS A SYSTEM', CR); line(`TIME +${(d * 2 * T.warpDays / 10).toFixed(1)}`); can = true; }
     else { line(`JUMP ${d}`); line(`COST ${cost} EN`, cost > S.energy ? CR : CG); line(`TIME +${(d * T.warpDays / 10).toFixed(1)}`); can = cost <= S.energy; }
   } else line('TAP A SECTOR');
   if (!S.sys.COM) { py += 4; line('COMMS DOWN', CR); line('FLEETS HIDDEN', CR); }
@@ -1323,7 +1349,7 @@ function drawHUD(dt) {
 //  GAME FLOW
 // =====================================================================
 function startGame() {
-  unlockAudio();
+  unlockAudio(); $('ini').blur();
   Object.assign(S, { score: 0, wave: 0, date: 0, energy: 100, shield: 100, pr: 0, yr: 0, fireCD: 0, dockCD: 0,
                      shake: 0, flash: 0, wflash: 0, waveT: 0, sel: null, msgT: 0, wpn: 0, charge: 100, comm: null, commQ: [], lowHail: false, shieldT: 0, dockWarn: 0, jumped: true, warpTo: null, lock: null });
   S.sys = { RAD: 1, COM: 1, ENG: 1 }; S.ammo = { m: 8, t: 3 }; wpnLabel();
@@ -1337,23 +1363,26 @@ function startGame() {
 function gameOver(why) {
   explode(ship.position.clone().addScaledVector(shipFwd(_a), 12), 14, RED); sfx.boom(true);
   $('why').textContent = why; $('fin').textContent = `SCORE ${S.score}   WAVE ${S.wave}`;
-  $('saveRow').style.display = S.score > 0 ? 'flex' : 'none'; $('bSave').textContent = 'SAVE SCORE';
+  $('saveRow').style.display = S.score > 0 ? 'flex' : 'none'; $('bSave').textContent = 'SAVE SCORE'; $('hi2').textContent = '';
   $('bMap').classList.remove('alert'); S.comm = null; S.commQ = [];
   camera.fov = FOV; camera.updateProjectionMatrix(); camera.rotation.z = 0; setMode('over');
 }
 function showScores(list) {
-  $('hi').textContent = list && list.length ? 'HIGH SCORES\n' + list.slice(0, 5).map((s, i) =>
+  const t = Array.isArray(list) && list.length ? 'HIGH SCORES\n' + list.slice(0, 5).map((s, i) =>
     `${i + 1}. ${String(s.name).padEnd(3)} ${String(s.score).padStart(7)}  W${s.wave}`).join('\n') : '';
+  $('hi').textContent = t; $('hi2').textContent = t;
 }
 function loadScores() { fetch('api/scores').then(r => r.json()).then(showScores).catch(() => {}); }
 let saving = false;
-tap('bSave', () => {
-  if (saving || $('saveRow').style.display === 'none') return; saving = true;
+function saveScore() {
+  if (saving || S.mode !== 'over' || $('saveRow').style.display === 'none') return; saving = true;
   const name = ($('ini').value || 'ACE').toUpperCase(); $('ini').blur();
   fetch('api/scores', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, score: S.score, wave: S.wave }) })
-    .then(r => r.json()).then(l => { showScores(l); $('saveRow').style.display = 'none'; })
-    .catch(() => { $('bSave').textContent = 'OFFLINE'; }).finally(() => { saving = false; });
-});
+    .then(r => { if (!r.ok) throw new Error('rejected'); return r.json(); })
+    .then(l => { showScores(l); $('saveRow').style.display = 'none'; $('fin').textContent += '   SAVED'; })
+    .catch(() => { $('bSave').textContent = 'NOT SAVED  RETRY'; }).finally(() => { saving = false; });
+}
+tap('bSave', saveScore);
 
 // =====================================================================
 //  MAIN LOOP
@@ -1370,7 +1399,7 @@ function frame(now) {
   if (S.mode === 'flight' || S.mode === 'map' || S.mode === 'warp') updStrategy(dt);   // the map does not stop the clock
   if (m === 'title' || m === 'over') { ship.rotateY(dt * 0.06); ship.rotateX(dt * 0.02); vel.set(0, 0, 0); }
   if (m !== 'pause' && m !== 'map') updDebris(dt);
-  if (S.msgT > 0 && m !== 'pause') S.msgT -= dt;
+  if (S.msgT > 0 && m !== 'pause' && m !== 'map') S.msgT -= dt;
 
   updDust(vel, m === 'warp' ? 0.05 + 0.25 * Math.sin(clamp(S.warpT / WARP_LEN, 0, 1) * Math.PI) : 0.035);
   sky.position.copy(ship.position);

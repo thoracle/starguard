@@ -22,7 +22,8 @@ def load_scores():
     try:
         with open(SCORES) as f:
             data = json.load(f)
-        return data if isinstance(data, list) else []
+        # keep only well-formed rows so one bad entry cannot break sorting
+        return [s for s in data if isinstance(s, dict) and isinstance(s.get("score"), int)] if isinstance(data, list) else []
     except (OSError, ValueError):
         return []
 
@@ -48,12 +49,14 @@ def get_scores():
 
 @app.post("/api/scores")
 def post_score():
-    body = request.get_json(silent=True) or {}
+    body = request.get_json(silent=True)
+    if not isinstance(body, dict):
+        return jsonify(error="expected a JSON object"), 400
     name = re.sub(r"[^A-Z0-9]", "", str(body.get("name", "")).upper())[:3] or "ACE"
     try:
         score = int(body.get("score", 0))
         wave = int(body.get("wave", 1))
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, OverflowError):
         return jsonify(error="bad score"), 400
     if not (0 <= score <= 10_000_000 and 0 <= wave <= 999):
         return jsonify(error="out of range"), 400
