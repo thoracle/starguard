@@ -72,13 +72,14 @@ body[data-mode=map] .mo{display:flex}
 #bBack{width:128px;height:44px;right:calc(var(--sr) + 12px);bottom:calc(var(--sb) + 86px);border-radius:8px}
 
 /* ---- overlays ---- */
-.ov{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;
+.ov{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:flex-start;overflow:hidden;
   gap:8px;text-align:center;background:rgba(0,6,2,.72);padding:8px calc(var(--sr) + 12px) 8px calc(var(--sl) + 12px)}
 body[data-mode=title] #ovTitle,body[data-mode=over] #ovOver,body[data-mode=pause] #ovPause{display:flex}
-h1{margin:0;font-size:clamp(30px,9vh,64px);letter-spacing:.22em;text-shadow:0 0 12px var(--g);font-weight:normal}
+.ov>:first-child{margin-top:auto}.ov>:last-child{margin-bottom:auto}
+h1{margin:0;font-size:clamp(26px,9vh,64px);letter-spacing:.22em;text-shadow:0 0 12px var(--g);font-weight:normal}
 h2{margin:0;font-size:clamp(20px,7vh,40px);letter-spacing:.18em;font-weight:normal;text-shadow:0 0 10px currentColor}
 .sub{font-size:11px;letter-spacing:.35em;opacity:.8}
-.how{font-size:11px;line-height:1.55;max-width:560px;opacity:.9}
+.how{font-size:11px;line-height:1.55;max-width:760px;opacity:.9}
 .how b{color:#fff;font-weight:normal}
 .tb{border:2px solid var(--g);color:var(--g);background:rgba(0,40,12,.5);padding:10px 22px;min-width:150px;
   font:bold 15px "Courier New",monospace;letter-spacing:2px;border-radius:6px;cursor:pointer;
@@ -89,6 +90,7 @@ h2{margin:0;font-size:clamp(20px,7vh,40px);letter-spacing:.18em;font-weight:norm
 #ini{width:84px;background:#000;border:2px solid var(--g);color:#fff;text-align:center;border-radius:6px;
   font:bold 20px "Courier New",monospace;letter-spacing:4px;padding:6px;text-transform:uppercase;
   -webkit-user-select:text;user-select:text;outline:none}
+@media (max-height:380px){.ov{gap:5px}.how{font-size:10px;line-height:1.4}.tb{padding:8px 22px}#hi,#hi2{font-size:10px;line-height:1.25}}
 #rot{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:#000;
   font-size:18px;letter-spacing:.2em;text-align:center;z-index:9}
 @media (orientation:portrait) and (max-width:700px){#rot{display:flex}}
@@ -123,12 +125,12 @@ h2{margin:0;font-size:clamp(20px,7vh,40px);letter-spacing:.18em;font-weight:norm
 <div id="ovTitle" class="ov">
   <div class="sub">VECTOR SECTOR DEFENSE</div>
   <h1>STARGUARD</h1>
-  <div class="how">
-    <b>LEFT THUMB</b> steers &middot; <b>FIRE</b> the selected weapon &middot; <b>WEAPON</b> cycles laser, missiles, torpedoes &middot; <b>FASTER / SLOWER</b> tap to set speed, hold for boost or full stop<br>
-    <b>Tap a ship</b> to target it and pick a subsystem &middot; <b>VIEW</b> flips between fore and aft (torpedoes drop aft only) &middot; <b>SCAN</b>: tap a sector, then <b>WARP</b>. Raider fleets advance on your bases &mdash; intercept them.<br>
-    Fly into a base ring to refuel and repair. Lose <b>HOME</b> base and it is over.
-  </div>
   <div class="tb" id="bStart">LAUNCH</div>
+  <div class="how">
+    Raider fleets advance on your stations. <b>SCAN</b> the chart, <b>WARP</b> to intercept, and keep <b>HOME</b> alive.<br>
+    <b>Left thumb</b> steers &middot; <b>FIRE</b> the selected weapon &middot; <b>FASTER / SLOWER</b>: tap for speed, hold for boost or stop<br>
+    <b>Tap a ship</b> to target it &middot; <b>VIEW</b> looks aft (torpedoes drop aft) &middot; fly into a station ring to dock
+  </div>
   <div id="hi"></div>
 </div>
 
