@@ -14,7 +14,7 @@
   --g:#39ff6a; --gd:#1c7a38; --r:#ff4a3a;
   --esl:env(safe-area-inset-left,0px); --esr:env(safe-area-inset-right,0px);
   --est:env(safe-area-inset-top,0px);  --esb:env(safe-area-inset-bottom,0px);
-  --sl:var(--esl); --sr:var(--esr); --st:var(--est); --sb:var(--esb); --tk:28px; --cl:264px; --cr:580px; --bw:58px; --bx:500px;   /* --sl..--sb, --tk, --cl are overwritten from JS in resize() */
+  --sl:var(--esl); --sr:var(--esr); --st:var(--est); --sb:var(--esb); --tk:28px; --cl:264px; --cr:580px; --bw:58px; --bx:500px; --tx:300px;   /* --sl..--sb, --tk, --cl are overwritten from JS in resize() */
 }
 *{box-sizing:border-box;touch-action:none}
 input{touch-action:manipulation}
@@ -63,6 +63,10 @@ body[data-mode=map] .mo{display:flex}
 #bMap{width:var(--bw);height:36px;left:var(--bx);bottom:calc(var(--sb) + var(--tk) + 13px);border-radius:7px;font-size:12px}
 #bView{width:var(--bw);height:36px;left:var(--bx);bottom:calc(var(--sb) + var(--tk) + 55px);border-radius:7px;font-size:11px;gap:1px}
 #bView small{font-size:7px}
+.tg{width:var(--bw);height:36px;left:var(--tx);border-radius:7px;font-size:11px;gap:1px}
+.tg small{font-size:7px}
+#bTgN{bottom:calc(var(--sb) + var(--tk) + 55px)}
+#bTgP{bottom:calc(var(--sb) + var(--tk) + 13px)}
 #bPause{width:38px;height:34px;right:calc(var(--sr) + 10px);top:calc(var(--st) + 8px);border-radius:6px;font-size:12px;opacity:.6;box-shadow:none}
 #bWarp{width:128px;height:62px;right:calc(var(--sr) + 12px);bottom:calc(var(--sb) + 14px);border-radius:8px;font-size:18px}
 #bBack{width:128px;height:44px;right:calc(var(--sr) + 12px);bottom:calc(var(--sb) + 86px);border-radius:8px}
@@ -105,6 +109,8 @@ h2{margin:0;font-size:clamp(20px,7vh,40px);letter-spacing:.18em;font-weight:norm
 <div id="bWpn"   class="btn fo"></div>
 <div id="bMap"   class="btn fo">SCAN</div>
 <div id="bView"  class="btn fo"></div>
+<div id="bTgN"  class="btn fo tg"><small>TARGET</small>NEXT</div>
+<div id="bTgP"  class="btn fo tg"><small>TARGET</small>PREV</div>
 <div id="bPause" class="btn fo">II</div>
 <div id="bTgt"  class="btn fo sub" hidden></div>
 <div id="bSubP" class="btn fo sub" hidden>&#9664;</div>
@@ -226,7 +232,7 @@ function resize() {
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   SAFE = readSafe();
   for (const k of ['l', 'r', 't', 'b']) document.documentElement.style.setProperty('--s' + k, SAFE[k] + 'px');
-  document.documentElement.style.setProperty('--cl', dash().cl + 'px'); document.documentElement.style.setProperty('--cr', dash().cr + 'px'); document.documentElement.style.setProperty('--bw', dash().bw + 'px'); document.documentElement.style.setProperty('--bx', dash().bx + 'px');
+  document.documentElement.style.setProperty('--cl', dash().cl + 'px'); document.documentElement.style.setProperty('--cr', dash().cr + 'px'); document.documentElement.style.setProperty('--bw', dash().bw + 'px'); document.documentElement.style.setProperty('--bx', dash().bx + 'px'); document.documentElement.style.setProperty('--tx', dash().tx + 'px');
   camera.setViewOffset(W, H, 0, H / 2 - dash().yC / 2, W, H);   // aim point = centre of the canopy glass, not of the screen
   stickHome();
 }
@@ -333,6 +339,7 @@ const keys = {};
 let bases = [], fleets = [], enemies = [], bolts = [], lasers = [], ords = [], debris = [];
 let baseObj = null, curBase = null;
 const vel = V();
+const inSpace = () => S.mode === 'flight' || S.mode === 'map';   // the ship is flying and can be shot at, whether you are looking at the cockpit or the nav computer
 const shipFwd = out => out.set(0, 0, -1).applyQuaternion(ship.quaternion);
 const viewFwd = out => out.set(0, 0, S.aft ? 1 : -1).applyQuaternion(ship.quaternion);   // where the pilot is looking, and where the guns point
 function setView(aft) {
@@ -470,6 +477,7 @@ for (const [id, dir] of [['bBoost', 1], ['bBrake', -1]]) {
 }
 const tap = (id, fn) => $(id).addEventListener('pointerdown', e => { e.preventDefault(); unlockAudio(); fn(e); });
 
+tap('bTgN', () => cycleTarget(1)); tap('bTgP', () => cycleTarget(-1));
 tap('bSubP', () => cycleSub(-1)); tap('bSubN', () => cycleSub(1)); tap('bTgt', () => { if (S.target) setTarget(null); });
 tap('bWpn', cycleWeapon); tap('bView', toggleView); tap('bMap', openMap); tap('bBack', closeMap); tap('bWarp', tryWarp);
 tap('bPause', () => { S.prev = S.mode; setMode('pause'); });
@@ -496,7 +504,7 @@ window.addEventListener('keydown', e => {
   keys[e.code] = true; unlockAudio();
   if (e.code === 'KeyQ' && !e.repeat) cycleWeapon();
   if (e.code === 'KeyV' && !e.repeat) toggleView();
-  if (e.code === 'KeyT' && !e.repeat) cycleTarget();
+  if (e.code === 'KeyT' && !e.repeat) cycleTarget(e.shiftKey ? -1 : 1);
   if (e.code === 'BracketLeft' && !e.repeat) cycleSub(-1);
   if (e.code === 'BracketRight' && !e.repeat) cycleSub(1);
   if (!e.repeat && (e.code === 'Equal' || e.code === 'NumpadAdd')) stepThrottle(1);
@@ -784,7 +792,7 @@ function damageEnemy(e, d) {
   }
 }
 function hitPlayer(dmg) {
-  if (S.mode !== 'flight') return;
+  if (!inSpace()) return;
   S.flash = 0.45; S.shake = 0.4; S.shieldT = T.shieldDelay; sfx.hit();
   if (S.shield > 0) {
     const left = S.shield - dmg; S.shield = Math.max(0, left);
@@ -829,8 +837,9 @@ function updEnemy(e, dt) {
 
 function updFlight(dt) {
   // --- steering
-  const kx = (keys.ArrowRight || keys.KeyD ? 1 : 0) - (keys.ArrowLeft || keys.KeyA ? 1 : 0);
-  const ky = (keys.ArrowDown || keys.KeyS ? 1 : 0) - (keys.ArrowUp || keys.KeyW ? 1 : 0);
+  const hands = S.mode === 'flight';                     // false while the nav computer is open: the ship flies on by itself
+  const kx = hands ? (keys.ArrowRight || keys.KeyD ? 1 : 0) - (keys.ArrowLeft || keys.KeyA ? 1 : 0) : 0;
+  const ky = hands ? (keys.ArrowDown || keys.KeyS ? 1 : 0) - (keys.ArrowUp || keys.KeyW ? 1 : 0) : 0;
   const ix = clamp(input.x + kx, -1, 1), iy = clamp(input.y + ky, -1, 1) * (S.invY ? -1 : 1) * (S.aft ? -1 : 1);
   const k = Math.min(1, dt * 9);
   S.pr += (-iy * T.turn - S.pr) * k; S.yr += (-ix * T.turn - S.yr) * k;
@@ -838,7 +847,7 @@ function updFlight(dt) {
   camera.rotation.z = S.yr * 0.12 * (S.aft ? -1 : 1);   // bank into turns
 
   // --- throttle
-  const boost = (input.boost || keys.ShiftLeft || keys.ShiftRight) && S.energy > 0;
+  const boost = hands && (input.boost || keys.ShiftLeft || keys.ShiftRight) && S.energy > 0;
   const eng = S.sys.ENG ? 1 : 0.55;
   let target = (boost ? T.boost : S.throttle) * eng;       // throttle setting holds until changed; boost overrides while held
   if (boost) S.energy -= T.boostCost * dt;
@@ -883,7 +892,7 @@ function updFlight(dt) {
   // lasers run off a capacitor that trickle-charges from the energy tank; missiles and torpedoes are counted rounds
   if (S.charge < 100 && S.energy > 0) { const add = Math.min(100 - S.charge, T.chargeRate * dt); S.charge += add; S.energy -= add * T.chargeCost; }
   S.fireCD -= dt;
-  if ((input.fire || keys.Space) && S.fireCD <= 0 && !S.docked) {
+  if (hands && (input.fire || keys.Space) && S.fireCD <= 0 && !S.docked) {
     const w = WPN[S.wpn];
     if (!w.key) {
       if (S.charge >= T.laserHeat) { fireLaser(); S.fireCD = T.fireGap; }
@@ -893,7 +902,7 @@ function updFlight(dt) {
     else { fireOrdnance(S.wpn); S.fireCD = S.wpn === 1 ? T.missileGap : T.torpGap; }
   }
 
-  for (let i = enemies.length - 1; i >= 0; i--) { updEnemy(enemies[i], dt); if (S.mode !== 'flight') return; }
+  for (let i = enemies.length - 1; i >= 0; i--) { updEnemy(enemies[i], dt); if (!inSpace()) return; }
 
   for (let i = lasers.length - 1; i >= 0; i--) {
     const l = lasers[i], a = _a.copy(l.o.position);
@@ -909,9 +918,9 @@ function updFlight(dt) {
   for (let i = bolts.length - 1; i >= 0; i--) {
     const b = bolts[i], from = _a.copy(b.o.position); b.o.position.addScaledVector(b.vel, dt); b.o.rotation.x += dt * 9; b.o.rotation.y += dt * 7; b.life -= dt;
     const hit = segHit(from, b.o.position, ship.position, 3.5);
-    if (hit || b.life <= 0) { scene.remove(b.o); bolts.splice(i, 1); if (hit && !S.docked) { hitPlayer(T.boltDmg); if (S.mode !== 'flight') return; } }
+    if (hit || b.life <= 0) { scene.remove(b.o); bolts.splice(i, 1); if (hit && !S.docked) { hitPlayer(T.boltDmg); if (!inSpace()) return; } }
   }
-  updOrds(dt); if (S.mode !== 'flight') return;
+  updOrds(dt); if (!inSpace()) return;
   // --- low-shield klaxon
   if (S.shield < 25) { S.lowT -= dt; if (S.lowT <= 0) { S.lowT = 0.9; sfx.blip(); } }
 }
@@ -1014,26 +1023,30 @@ function glassTap(e) {                     // tap a target to select it, tap it 
   setTarget(t === S.target ? null : t); return true;
 }
 function cycleSub(d) { if (S.mode !== 'flight' || !S.target || S.target.base) return; S.subI = (S.subI + d + SUBS.length) % SUBS.length; sfx.blip(); }
-function cycleTarget() {                   // keyboard: step through hostiles nearest first, then the station, then none
+function cycleTarget(d = 1) {              // step through the hostiles and then the station, wrapping round
   if (S.mode !== 'flight') return;
-  const list = enemies.slice().sort((a, b) => a.o.position.distanceTo(ship.position) - b.o.position.distanceTo(ship.position));
-  if (baseObj) list.push(BASE_T);
-  const i = list.indexOf(S.target); setTarget(i + 1 < list.length ? list[i + 1] : (i < 0 && list.length ? list[0] : null));
+  const list = enemies.slice(); if (baseObj) list.push(BASE_T);   // a fixed order, so NEXT then PREV always returns to the same ship
+  if (!list.length) return sfx.deny();
+  const i = list.indexOf(S.target);
+  if (i >= 0) return setTarget(list[(i + d + list.length) % list.length]);
+  const near = enemies.reduce((m, e) => !m || e.o.position.distanceTo(ship.position) < m.o.position.distanceTo(ship.position) ? e : m, null);
+  setTarget(near || list[0]);              // with nothing chosen, start from the nearest hostile
 }
-const SUB_H = 32;                          // height of the previous/next subsystem buttons along the bottom of the scope
+const subH = () => dash().sq < 72 ? 24 : 32;   // height of the previous/next subsystem buttons along the bottom of the scope
 let tgtKey = '';
 function targetUI() {                      // show and place the scope's touch buttons: clear (the wireframe itself), previous and next subsystem
   const show = S.mode === 'flight' && !!S.target, shipT = show && !S.target.base;
   $('bSubP').hidden = $('bSubN').hidden = !shipT; $('bTgt').hidden = !show;
+  const none = !enemies.length && !baseObj; $('bTgN').classList.toggle('off', none); $('bTgP').classList.toggle('off', none);   // nothing in the sector to target
   if (!show) return;
   const D = dash(), r = D.sq / 2, x = D.scx - r, y = D.yC + 55 - r, w = 2 * r, key = [x, y, w].join();
   if (key === tgtKey) return; tgtKey = key;
   const put = (id, l, t, ww, hh) => Object.assign($(id).style, { left: l + 'px', top: t + 'px', width: ww + 'px', height: hh + 'px' });
-  put('bSubP', x, y + w - SUB_H, w / 2, SUB_H); put('bSubN', x + w / 2, y + w - SUB_H, w / 2, SUB_H); put('bTgt', x, y, w, w - SUB_H);   // the two arrows share the full width of the scope
+  const sh = subH(); put('bSubP', x, y + w - sh, w / 2, sh); put('bSubN', x + w / 2, y + w - sh, w / 2, sh); put('bTgt', x, y, w, w - sh);   // the two arrows share the full width of the scope
 }
 function drawTarget(cx, cy, r) {           // takes the radar's place while something is targeted
   const t = S.target, isBase = !!t.base, wire = WIRE[isBase ? 'B' : t.type], col = isBase ? CG : CR;
-  const x = cx - r, y = cy - r, w = 2 * r, wh = w - (isBase ? 26 : SUB_H), top = isBase ? 0 : 13;   // ships: readout line on top, arrow buttons below
+  const x = cx - r, y = cy - r, w = 2 * r, wh = w - (isBase ? 26 : subH()), top = isBase ? 0 : 13, fs = w < 72 ? 8 : 9;   // ships: readout line on top, arrow buttons below
   ctx.fillStyle = 'rgba(0,12,4,.92)'; ctx.fillRect(x, y, w, w); ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.strokeRect(x, y, w, w);
   // turntable view, orthographic, tilted so you see the top
   const a = S.time * 0.8, ca = Math.cos(a), sa = Math.sin(a), ct = Math.cos(SCOPE_TILT), st = Math.sin(SCOPE_TILT);
@@ -1061,8 +1074,8 @@ function drawTarget(cx, cy, r) {           // takes the radar's place while some
   } else {
     const s = SUBS[S.subI], h = s ? t.sub[s] / t.subMax : Math.max(0, t.hp) / t.def.hp;
     ctx.fillStyle = 'rgba(0,12,4,.7)'; ctx.fillRect(x + 1, y + 1, w - 2, 13);   // keep the readout legible over the larger wireframe
-    text(s ? SUB_NAME[s] : 'HULL', x + 5, y + 11, 9, 'left', '#fff');
-    text(h <= 0 ? 'OUT' : Math.round(h * 100) + '%', x + w - 5, y + 11, 9, 'right', tone(h));
+    text(s ? SUB_NAME[s] : 'HULL', x + 4, y + 10, fs, 'left', '#fff');
+    text(h <= 0 ? 'OUT' : Math.round(h * 100) + '%', x + w - 4, y + 10, fs, 'right', tone(h));
   }
 }
 
@@ -1071,7 +1084,7 @@ function drawTarget(cx, cy, r) {           // takes the radar's place while some
 // =====================================================================
 const COMM_CPS = 30;                       // speech speed, characters per second
 const SPEAKERS = {
-  HOME:   { name: 'HOME CONTROL',  kind: 0, gear: 1, p: [1.00, 1.00, 1.0], col: [0.30, 1.0, 0.42], pitch: 210 },
+  HOME:   { name: 'HOME CONTROL',  kind: 0, gear: 1, p: [1.00, 1.00, 0.0], col: [0.30, 1.0, 0.42], pitch: 210 },
   BETA:   { name: 'BETA STATION',  kind: 0, gear: 2, p: [0.93, 0.86, 0.7], col: [0.30, 1.0, 0.42], pitch: 300 },
   GAMMA:  { name: 'GAMMA STATION', kind: 0, gear: 3, p: [1.08, 1.14, 1.4], col: [0.30, 1.0, 0.42], pitch: 160 },
   RAIDER: { name: 'RAIDER LEAD',   kind: 1, gear: 0, p: [1, 1, 1],         col: [1.0, 0.30, 0.22], pitch: 95, hostile: true },
@@ -1123,47 +1136,41 @@ float sdCap(vec3 p,vec3 a,vec3 b,float r){vec3 pa=p-a,ba=b-a;float h=clamp(dot(p
 float smin(float a,float b,float k){float h=clamp(.5+.5*(b-a)/k,0.,1.);return mix(b,a,h)-k*h*(1.-h);}
 float smax(float a,float b,float k){return -smin(-a,-b,k);}
 vec2 U(vec2 a,float d,float m){return d<a.x?vec2(d,m):a;}
-// station crew: x = distance, y = material (0 skin, 1 hair, 2 eye, 3 uniform, 4 kit)
+// station crew are small friendly robots: x = distance, y = material (0 shell, 2 eye, 3 dark trim, 4 bright accent)
+float sdBox(vec3 p,vec3 b,float r){vec3 q=abs(p)-b;return length(max(q,0.))+min(max(q.x,max(q.y,q.z)),0.)-r;}
 vec2 human(vec3 p){
-  vec3 q=vec3(abs(p.x),p.y,p.z);float w=uP.x,j=uP.y,br=uP.z,tk=uTalk;
-  float d=sdEll(q-vec3(0.,.36,-.06),vec3(.60*w,.62,.70));                         // cranium
-  d=smin(d,sdEll(q-vec3(0.,-.10-tk*.02,.10),vec3(.47*j,.62,.52)),.25);           // face
-  d=smin(d,length(q-vec3(0.,-.62-tk*.06,.34))-.15,.18);                           // chin
-  d=smin(d,length(q-vec3(.36*j,-.40-tk*.03,.04))-.15,.20);                        // jaw corners
-  d=smin(d,length(q-vec3(.33,.00,.40))-.14,.16);                                  // cheekbones
-  d=smin(d,sdCap(q,vec3(.09,.265,.60),vec3(.34,.25,.50),.05*br),.08);             // brow
-  d=smin(d,sdCap(q,vec3(0.,.20,.62),vec3(0.,-.07,.77),.05),.06);                  // nose bridge
-  d=smin(d,length(q-vec3(0.,-.11,.79))-.07,.05);                                  // nose tip
-  d=smin(d,length(q-vec3(.075,-.14,.70))-.05,.04);                                // nostrils
-  d=smax(d,-sdEll(q-vec3(.23,.13,.63),vec3(.125,.075,.10)),.04);                  // almond sockets
-  float blink=step(.955,fract(uT*.29+uP.z));
-  d=smin(d,sdCap(q,vec3(.13,.185,.585),vec3(.33,.175,.555),.026+blink*.05),.03);  // upper lids (and blinking)
-  d=smin(d,sdEll(q-vec3(0.,-.315,.645),vec3(.15,.034,.075)),.04);                 // upper lip
-  d=smin(d,sdEll(q-vec3(0.,-.395-tk*.075,.635),vec3(.12,.04,.075)),.04);          // lower lip moves with speech
-  d=smax(d,-sdEll(q-vec3(0.,-.352-tk*.036,.70),vec3(.14,.010+tk*.07,.12)),.02);   // mouth
-  d=smin(d,sdEll(q-vec3(.60*w,.08,-.05),vec3(.05,.14,.09)),.03);                  // ears
-  d=smin(d,sdCap(q,vec3(0.,-.58,-.12),vec3(0.,-1.2,-.15),.29),.10);               // neck
+  vec3 q=vec3(abs(p.x),p.y,p.z);float tk=uTalk,hw;
+  float blink=step(.94,fract(uT*.31+uP.z));
+  vec3 hc=vec3(0.,.24,0.);float d;
+  if(uGear<1.5){hw=.54;d=sdBox(q-hc,vec3(.50,.42,.40),.12);}                      // HOME: square head
+  else if(uGear<2.5){hw=.60;d=sdEll(q-hc,vec3(.64,.58,.56));}                     // BETA: round head
+  else{hw=.66;d=sdBox(q-hc,vec3(.56,.32,.38),.18);}                               // GAMMA: wide, low head
+  d=max(d,-sdBox(q-vec3(0.,.24,.56),vec3(.40,.29,.10),.05));                      // recessed face plate
   vec2 r=vec2(d,0.);
-  r=U(r,length(q-vec3(.23,.125,.54))-.074,2.);                                    // eyes
-  r=U(r,sdEll(q-vec3(0.,-1.52,-.15),vec3(1.25,.46,.60)),3.);                      // shoulders
-  r=U(r,sdEll(q-vec3(0.,-1.07,-.10),vec3(.43,.10,.43)),3.);                       // collar
-  float line=.20+.55*q.z-q.y;                                                     // hairline: forehead, over the ears, down to the nape
-  float hair=max(sdEll(q-vec3(0.,.39,-.10),vec3(.635*w,.655,.745)),line*.85);
-  if(uGear<1.5){                                                                  // duty officer: peaked cap over short hair
-    r=U(r,hair,1.);
-    r=U(r,max(sdEll(q-vec3(0.,.66,-.04),vec3(.70*w,.34,.80)),.52-q.y),4.);
-    r=U(r,sdEll(q-vec3(0.,.56,.66),vec3(.44,.03,.30)),4.);
-  }else if(uGear<2.5){                                                            // comms operator: longer hair, headset and boom mic
-    r=U(r,min(hair,sdEll(q-vec3(.50*w,-.22,-.22),vec3(.22,.62,.40))),1.);
-    r=U(r,length(q-vec3(.66*w,.08,-.02))-.15,4.);
-    r=U(r,sdCap(p,vec3(.66*w,.0,.08),vec3(.20,-.37,.68),.026),4.);
-    r=U(r,sdCap(q,vec3(.64*w,.22,-.02),vec3(0.,1.02,-.06),.035),4.);
-  }else{                                                                          // station commander: cropped hair and a full beard
-    r=U(r,hair,1.);
-    float beard=max(sdEll(q-vec3(0.,-.36-tk*.04,.14),vec3(.50*j,.50,.56)),q.y+.215-.25*smoothstep(.25,.5,q.x));
-    beard=max(beard,-sdEll(q-vec3(0.,-.355-tk*.04,.72),vec3(.17,.05+tk*.07,.16)));
-    r=U(r,beard,1.);
+  r=U(r,sdBox(q-vec3(0.,.24,.40),vec3(.40,.29,.03),.04),3.);                      // dark screen behind the face
+  r=U(r,sdEll(q-vec3(.24,.30,.44),vec3(.135,.135*(1.-blink*.85),.07)),2.);        // big round eyes that blink
+  if(uGear<1.5)r=U(r,sdBox(q-vec3(0.,.04-tk*.03,.45),vec3(.15,.018+tk*.065,.03),.012),4.);            // bar mouth opens as it talks
+  else if(uGear<2.5)r=U(r,sdEll(q-vec3(0.,.04,.45),vec3(.05+tk*.05,.035+tk*.07,.04)),4.);            // small round mouth
+  else{r=U(r,sdBox(q-vec3(.11,.05-tk*.02,.45),vec3(.035,.02+tk*.06,.03),.01),4.);r=U(r,sdBox(q-vec3(0.,.05-tk*.02,.45),vec3(.035,.02+tk*.06,.03),.01),4.);}   // three-bar speaker
+  r=U(r,sdCap(q,vec3(hw,.24,0.),vec3(hw+.10,.24,0.),.11),3.);                     // ear bolts
+  if(uGear<1.5){                                                                  // one antenna with a bobble
+    r=U(r,sdCap(p,vec3(0.,.74,0.),vec3(0.,1.02+tk*.02,0.),.022),3.);
+    r=U(r,length(p-vec3(0.,1.07+tk*.02,0.))-.075,4.);
+  }else if(uGear<2.5){                                                            // two feelers and a headset mic
+    r=U(r,sdCap(q,vec3(.22,.78,0.),vec3(.40,1.06,0.),.02),3.);
+    r=U(r,length(q-vec3(.41,1.09,0.))-.06,4.);
+    r=U(r,sdCap(p,vec3(hw+.06,.14,.10),vec3(.20,-.02,.54),.022),3.);
+    r=U(r,length(p-vec3(.20,-.02,.54))-.045,3.);
+  }else{                                                                          // a carry handle and brow plate
+    r=U(r,sdCap(q,vec3(.26,.68,0.),vec3(.26,.84,0.),.03),3.);
+    r=U(r,sdCap(p,vec3(-.26,.84,0.),vec3(.26,.84,0.),.03),3.);
+    r=U(r,sdBox(q-vec3(0.,.50,.50),vec3(.34,.022,.04),.012),3.);
   }
+  r=U(r,sdCap(p,vec3(0.,-.30,0.),vec3(0.,-.52,0.),.11),3.);                       // neck
+  r=U(r,sdBox(p-vec3(0.,-1.10,-.04),vec3(.56,.40,.32),.16),0.);                   // body
+  r=U(r,length(q-vec3(.80,-.86,-.04))-.15,3.);                                    // shoulder joints
+  r=U(r,length(p-vec3(0.,-.84,.40))-.07,4.);                                      // chest light
+  r=U(r,sdBox(q-vec3(.22,-1.06,.42),vec3(.07,.035,.02),.01),3.);                  // chest vents
   return r;
 }
 float alien(vec3 p){
@@ -1196,8 +1203,8 @@ void main(){
     n=normalize(floor(n*2.6+.5)/2.6);
     float l=clamp(dot(n,normalize(vec3(-.45,.55,.7))),0.,1.);
     float m=map2(p).y,tone=1.;vec3 lp=loc(p);
-    if(m>.5&&m<1.5)tone=.42;else if(m>2.5&&m<3.5)tone=.60;else if(m>3.5)tone=.50;
-    else if(m>1.5)tone=length(vec2(abs(lp.x)-.23,lp.y-.125))<.034?.10:1.25;       // eye white with a dark pupil
+    if(m>2.5&&m<3.5)tone=.42;else if(m>3.5)tone=1.3;
+    else if(m>1.5)tone=length(vec2(abs(lp.x)-.24,lp.y-.30))<.058?.08:1.3;         // glowing eye with a big dark pupil
     v=clamp((.24+.76*floor(l*4.+.5)/4.)*tone,.06,1.);
   }
   float nz=fract(sin(dot(gl_FragCoord.xy+uT*37.,vec2(12.9898,78.233)))*43758.5453);
@@ -1218,19 +1225,15 @@ const face = (() => {                      // raw WebGL: one quad, one program; 
     return { g, u };
   } catch (e) { console.warn('comm face shader unavailable:', e.message); return null; }
 })();
-function drawCommPanel(cx, cy, r) {        // the comm display: a caller's head while they speak, otherwise a standby screen
-  if (S.comm && S.comm.t > 0) return drawComm(cx, cy, r);
-  const x = cx - r, y = cy - r, w = r * 2, out = !S.sys.COM, c = out ? CR : CGD;
+function drawNoTarget(cx, cy, r) {         // the target scope with nothing chosen
+  const x = cx - r, y = cy - r, w = r * 2;
   ctx.fillStyle = 'rgba(0,12,4,.92)'; ctx.fillRect(x, y, w, w);
-  ctx.strokeStyle = c; ctx.lineWidth = 1; ctx.beginPath();
-  for (let ly = y + 5; ly < y + w - 2; ly += 4) { ctx.moveTo(x + 3, ly); ctx.lineTo(x + w - 3, ly); }   // idle scanlines
-  ctx.globalAlpha = 0.3; ctx.stroke(); ctx.globalAlpha = 1;
-  ctx.lineWidth = 1.5; ctx.strokeRect(x, y, w, w);
-  const waiting = S.comm && !out;          // someone is on the line, waiting for an alert to clear
-  text(out ? 'COMMS' : 'COMM', cx, cy - 1, 9, 'center', out ? CR : waiting && (S.time * 4 | 0) % 2 ? CG : CGD);
-  text(out ? 'OUT' : waiting ? 'INCOMING' : 'STANDBY', cx, cy + 10, 7, 'center');
+  ctx.strokeStyle = CGD; ctx.lineWidth = 1; ctx.beginPath();
+  ctx.moveTo(cx - r * 0.45, cy - 8); ctx.lineTo(cx + r * 0.45, cy - 8); ctx.moveTo(cx, cy - 8 - r * 0.45); ctx.lineTo(cx, cy - 8 + r * 0.45);   // empty reticle
+  ctx.stroke(); ctx.lineWidth = 1.5; ctx.strokeRect(x, y, w, w);
+  text('NO TARGET', cx, y + w - 16, 8, 'center', CGD); text('TAP A SHIP', cx, y + w - 6, 7, 'center');
 }
-function drawComm(cx, cy, r) {             // a caller's head on the comm display
+function drawComm(cx, cy, r) {             // a caller's head, in the radar's place while they speak
   const c = S.comm, sp = c.sp, col = sp.hostile ? CR : CG, x = cx - r, y = cy - r, w = r * 2;
   if (face) {
     const { g, u } = face;
@@ -1258,7 +1261,7 @@ function marker(pos, color, r, label, locked, targeted) {   // bracket when visi
   _b.copy(pos).project(camera);
   ctx.strokeStyle = ctx.fillStyle = ctx.shadowColor = color;
   const x = (_b.x + 1) / 2 * W, y = (1 - _b.y) / 2 * H, D = dash();
-  const glass = (x > D.cl && x < D.cr ? D.yC : (D.gap && x > D.sw + 14 && x < W - D.sw - 14) ? D.ySill : D.yS) - 4;   // bottom edge of the glass at this x
+  const glass = (x > D.cl && x < D.cr ? D.yC : (D.gap && x > D.swL + 14 && x < D.swR - 14) ? D.ySill : D.yS) - 4;   // bottom edge of the glass at this x
   if (front && Math.abs(_b.x) < 0.93 && _b.y < 0.9 && y < glass) {
     const s = clamp(r / dist * H / (2 * Math.tan(FOV * Math.PI / 360)) * 1.5, 9, 70);
     bracket(x, y, s);
@@ -1280,12 +1283,12 @@ function marker(pos, color, r, label, locked, targeted) {   // bracket when visi
   }
 }
 function dash() {                       // one-piece dashboard geometry
-  const sb = SAFE.b, sw = Math.max(SAFE.l + 218, SAFE.r + 250), cx = W / 2, yT = H - sb - TICK;
-  const cl = Math.max(sw + 14, cx - 190), cr = W - cl;
-  // centre console holds three things side by side: the comm display, the scope (radar or target), and a VIEW/SCAN button column
-  const room = cr - cl - 16, bw = Math.max(34, Math.min(58, Math.floor(room * 0.27))), sq = Math.max(28, Math.min(88, Math.floor((room - bw - 12) / 2)));
-  const x0 = cx - (2 * sq + bw + 12) / 2, hx = x0 + sq / 2, scx = x0 + sq + 6 + sq / 2, bx = x0 + 2 * sq + 12;   // centres of the two displays, left edge of the buttons
-  return { sb, sw, cx, cl, cr, yT, bw, sq, hx, scx, bx, yS: yT - 142, yC: yT - 106, ySill: yT - 24, gap: cl - sw > 44 };
+  const sb = SAFE.b, swL = SAFE.l + 218, swR = W - SAFE.r - 250, cx = W / 2, yT = H - sb - TICK;   // inner edges of the left and right consoles
+  const wide = swR - swL - 28 > 380, cl = wide ? cx - 190 : swL + 14, cr = wide ? cx + 190 : swR - 14, mid = (cl + cr) / 2;   // centre console: capped and centred on wide screens, otherwise all the room between
+  // centre console, left to right: target NEXT/PREV buttons, radar (or a caller), target scope, VIEW/SCAN buttons
+  const room = cr - cl - 16, bw = Math.max(34, Math.min(58, Math.floor(room * 0.2))), sq = Math.max(28, Math.min(88, Math.floor((room - 2 * bw - 18) / 2)));
+  const tx = mid - (2 * sq + 2 * bw + 18) / 2, hx = tx + bw + 6 + sq / 2, scx = hx + sq + 6, bx = scx + sq / 2 + 6;   // left edges of the button columns, centres of the two displays
+  return { sb, swL, swR, cx, cl, cr, yT, bw, sq, tx, hx, scx, bx, yS: yT - 142, yC: yT - 106, ySill: yT - 24, gap: cl - swL > 44 };
 }
 function icon(kind, x, y) {                // 14px vector glyphs under the status bars; uses the current stroke colour
   ctx.save(); ctx.translate(x, y); ctx.lineWidth = 1.4; ctx.lineJoin = 'round'; ctx.beginPath();
@@ -1322,22 +1325,23 @@ function annunciator() {                 // what the strip shows right now: [tex
   return ['', CG];
 }
 function drawCockpit() {
-  const D = dash(), { sb, sw, cx, cl, cr, yS, yC, ySill, yT } = D, L = SAFE.l, R = W - SAFE.r;
+  const D = dash(), { sb, swL, swR, cx, cl, cr, yS, yC, ySill, yT } = D, L = SAFE.l, R = W - SAFE.r;
   ctx.shadowBlur = 0; ctx.strokeStyle = CGD; ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.moveTo(-2, H + 2); ctx.lineTo(-2, yS); ctx.lineTo(sw, yS);                                                // dashboard
-  if (D.gap) { ctx.lineTo(sw + 14, ySill); ctx.lineTo(cl - 14, ySill); }
+  ctx.beginPath(); ctx.moveTo(-2, H + 2); ctx.lineTo(-2, yS); ctx.lineTo(swL, yS);                                                // dashboard
+  if (D.gap) { ctx.lineTo(swL + 14, ySill); ctx.lineTo(cl - 14, ySill); }
   ctx.lineTo(cl, yC); ctx.lineTo(cr, yC);
-  if (D.gap) { ctx.lineTo(cr + 14, ySill); ctx.lineTo(W - sw - 14, ySill); }
-  ctx.lineTo(W - sw, yS); ctx.lineTo(W + 2, yS); ctx.lineTo(W + 2, H + 2);
+  if (D.gap) { ctx.lineTo(cr + 14, ySill); ctx.lineTo(swR - 14, ySill); }
+  ctx.lineTo(swR, yS); ctx.lineTo(W + 2, yS); ctx.lineTo(W + 2, H + 2);
   ctx.fillStyle = 'rgba(0,9,3,.95)'; ctx.fill(); ctx.strokeStyle = CG; ctx.lineWidth = 1.5; ctx.stroke();
   ctx.strokeStyle = CGD; ctx.beginPath(); ctx.moveTo(cl, yC); ctx.lineTo(cl, yT); ctx.moveTo(cr, yC); ctx.lineTo(cr, yT); ctx.stroke();  // panel seams
   ctx.shadowBlur = 3; ctx.shadowColor = CG;
 
   // --- centre console: SCAN key (DOM) on the left, radar scope
   const half = D.sq / 2, r = half - 2, ry = yC + 55;
-  drawCommPanel(D.hx, ry, half);                         // the comm display sits beside the scope instead of replacing it
-  if (S.target) drawTarget(D.scx, ry, half); else {
-  const cx = D.scx;                                      // the radar is drawn around the scope's centre
+  // two displays: the target scope on the right, and on the left the radar, which a caller's head takes over while they speak
+  if (S.target) drawTarget(D.scx, ry, half); else drawNoTarget(D.scx, ry, half);
+  if (S.comm && S.comm.t > 0) drawComm(D.hx, ry, half); else {
+  const cx = D.hx;                                       // the radar is drawn around the left display's centre
   ctx.strokeStyle = CG; ctx.beginPath(); ctx.arc(cx, ry, r, 0, 7); ctx.stroke();
   ctx.strokeStyle = CGD; ctx.beginPath(); ctx.arc(cx, ry, r / 2, 0, 7);
   ctx.moveTo(cx - r, ry); ctx.lineTo(cx + r, ry); ctx.moveTo(cx, ry - r); ctx.lineTo(cx, ry + r); ctx.stroke();
@@ -1378,7 +1382,7 @@ function drawCockpit() {
     ctx.strokeStyle = CGD; ctx.beginPath();
     for (const [bx, by, br] of [[R - 59, yT - 67, 45], [L + 74, yT - 68, 58]]) { ctx.moveTo(bx + br, by); ctx.arc(bx, by, br, 0, 7); }
     ctx.rect(R - 178, yT - 122, 52, 110); ctx.moveTo(R - 178, yT - 67); ctx.lineTo(R - 126, yT - 67);
-    ctx.rect(R - 242, yT - 122, 56, 110); ctx.rect(D.bx, yT - 91, D.bw, 36); ctx.rect(D.bx, yT - 49, D.bw, 36); ctx.stroke();
+    ctx.rect(R - 242, yT - 122, 56, 110); ctx.rect(D.bx, yT - 91, D.bw, 36); ctx.rect(D.bx, yT - 49, D.bw, 36); ctx.rect(D.tx, yT - 91, D.bw, 36); ctx.rect(D.tx, yT - 49, D.bw, 36); ctx.stroke();
   }
   drawTicker(yT);
   ctx.shadowBlur = 0;
@@ -1506,6 +1510,7 @@ function drawMap() {
     else { line(`JUMP ${d}`); line(`COST ${cost} EN`, cost > S.energy ? CR : CG); line(`TIME +${(d * T.warpDays / 10).toFixed(1)}`); can = cost <= S.energy; }
   } else line('TAP A SECTOR');
   if (!S.sys.COM) { py += 4; line('COMMS DOWN', CR); line('FLEETS HIDDEN', CR); }
+  if (enemies.length && (S.time * 3 | 0) % 2) { py += 4; line('UNDER ATTACK', CR); py -= 4; } else if (enemies.length) py += 16;   // the fight goes on while you read the chart
   py += 4; line(`ENERGY ${Math.round(S.energy)}`, S.energy < 25 ? CR : CG); line(`SHIELD ${Math.round(S.shield)}`, S.shield < 25 ? CR : CG);
   $('bWarp').classList.toggle('off', !can);
   ctx.shadowBlur = 0;
@@ -1568,19 +1573,19 @@ function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
   const m = S.mode;
   if (m !== 'pause') S.time += dt;
-  if (m === 'flight') updFlight(dt);
+  if (m === 'flight' || m === 'map') updFlight(dt);          // the dogfight does not stop for the nav computer
   if (S.mode === 'flight') updComm(dt);                       // the channel only runs while you are in the cockpit
   if (m === 'warp') updWarp(dt);
   if (S.mode === 'flight' || S.mode === 'map' || S.mode === 'warp') updStrategy(dt);   // the map does not stop the clock
   if (m === 'title' || m === 'over') { ship.rotateY(dt * 0.06); ship.rotateX(dt * 0.02); vel.set(0, 0, 0); }
-  if (m !== 'pause' && m !== 'map') updDebris(dt);
+  if (m !== 'pause') updDebris(dt);
   if (S.msgT > 0 && m !== 'pause' && m !== 'map') S.msgT -= dt;
 
   updDust(vel, m === 'warp' ? 0.05 + 0.25 * Math.sin(clamp(S.warpT / WARP_LEN, 0, 1) * Math.PI) : 0.035);
   sky.position.copy(ship.position);
   if (S.shake > 0) { S.shake -= dt; camera.position.set(rand(-1, 1), rand(-1, 1), 0).multiplyScalar(S.shake * 1.2); } else camera.position.set(0, 0, 0);
   if (humG) {
-    const on = S.sound && (S.mode === 'flight' || S.mode === 'warp');
+    const on = S.sound && (inSpace() || S.mode === 'warp');
     humG.gain.value = on ? 0.05 + S.speed / 2500 : 0; hum.frequency.value = 38 + S.speed * (S.mode === 'warp' ? 3 : 0.7);
   }
   rockLabel(); targetUI(); portraitPause();
