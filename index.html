@@ -909,7 +909,10 @@ function marker(pos, color, r, label, locked) {        // bracket when visible, 
     const s = clamp(r / dist * H / (2 * Math.tan(FOV * Math.PI / 360)) * 1.5, 9, 70);
     bracket(x, y, s);
     if (locked) { ctx.beginPath(); ctx.moveTo(x, y - s - 6); ctx.lineTo(x + s + 6, y); ctx.lineTo(x, y + s + 6); ctx.lineTo(x - s - 6, y); ctx.closePath(); ctx.stroke(); }
-    if (label) text(label + ' ' + Math.round(dist), x, y + s + 12, 9, 'center');
+    if (label) {                          // name small, range large enough to read at a glance
+      const fs = Math.round(clamp(H * 0.045, 16, 26)), yl = y + s + (locked ? 8 : 2) + fs;
+      text(String(Math.round(dist)), x, yl, fs, 'center'); text(label, x, yl + fs * 0.62, Math.round(fs * 0.55), 'center');
+    }
   } else {
     const a = (Math.abs(lx) + Math.abs(ly) < 1e-3) ? Math.PI / 2 : Math.atan2(-ly, lx);
     const gy = dash().yC / 2, x = W / 2 + Math.cos(a) * W * 0.33, y = gy + Math.sin(a) * (gy - 22);
