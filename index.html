@@ -57,8 +57,8 @@ body[data-mode=map] .mo{display:flex}
 #bBrake{bottom:calc(var(--sb) + var(--tk) + 12px);border-radius:3px 3px 12px 12px}
 #bWpn{width:56px;height:110px;right:calc(var(--sr) + 186px);bottom:calc(var(--sb) + var(--tk) + 12px);border-radius:8px;font-size:11px;letter-spacing:0;gap:6px}
 #bWpn .am{font-size:16px;color:#fff}
-#bMap{width:58px;height:78px;left:calc(var(--cl) + 8px);bottom:calc(var(--sb) + var(--tk) + 13px);border-radius:8px;font-size:12px}
-#bView{width:58px;height:78px;left:calc(var(--cr) - 66px);bottom:calc(var(--sb) + var(--tk) + 13px);border-radius:8px;font-size:12px;gap:6px}
+#bMap{width:58px;height:78px;left:calc(var(--cr) - 66px);bottom:calc(var(--sb) + var(--tk) + 13px);border-radius:8px;font-size:12px}
+#bView{width:58px;height:78px;left:calc(var(--cl) + 8px);bottom:calc(var(--sb) + var(--tk) + 13px);border-radius:8px;font-size:12px;gap:6px}
 #bPause{width:38px;height:34px;right:calc(var(--sr) + 10px);top:calc(var(--st) + 8px);border-radius:6px;font-size:12px;opacity:.6;box-shadow:none}
 #bWarp{width:128px;height:62px;right:calc(var(--sr) + 12px);bottom:calc(var(--sb) + 14px);border-radius:8px;font-size:18px}
 #bBack{width:128px;height:44px;right:calc(var(--sr) + 12px);bottom:calc(var(--sb) + 86px);border-radius:8px}
@@ -159,11 +159,11 @@ const T = {
   turn: 1.55,                               // max pitch/yaw rate (rad/s)
   fireGap: 0.13, laserSpeed: 650,
   laserHeat: 3, chargeRate: 9, chargeCost: 0.04,   // laser capacitor: drain per shot, recharge/s, energy per point recharged
-  missileSpeed: 190, missileTurn: 3.5, missileDmg: 3, missileGap: 0.5,
-  torpSpeed: 130, torpBlast: 48, torpGap: 1.3,
+  missileSpeed: 190, missileTurn: 3.5, missileDmg: 6, missileGap: 0.5,
+  torpSpeed: 130, torpBlast: 48, torpDmg: 20, torpGap: 1.3,     // torpedo: full damage in the inner half of the blast, half outside
   assistCone: 0.12, assistRange: 650,       // auto-aim cone (rad) and range
   boltSpeed: 105, boltDmg: 13,              // enemy shots
-  boostCost: 2.5, shieldRegen: 2.5, shieldCost: 0.6,
+  boostCost: 2.5, shieldRegen: 2.5, shieldCost: 0.6, shieldDelay: 4,   // shields wait this long after a hit before recharging
   warpCost: 4,                              // energy per sector jumped
   warpDays: 6,                              // seconds the fleets gain per sector jumped
   fleetStep: 20,                            // seconds between fleet moves (wave 1)
@@ -266,8 +266,8 @@ function mkBase() {
 }
 const ET = {
   F: { name: 'RAIDER',  proto: mkFighter(), hp: 1, r: 5.5, speed: 52, turn: 1.6, rate: 2.4, cone: 0.93, pts: 100, spin: 'z', brk: 60 },
-  S: { name: 'SAUCER',  proto: mkSaucer(),  hp: 2, r: 7,   speed: 40, turn: 2.4, rate: 1.7, cone: 0.80, pts: 150, spin: 'y', brk: 80 },
-  C: { name: 'CRUISER', proto: mkCruiser(), hp: 7, r: 13,  speed: 22, turn: 0.5, rate: 1.1, cone: -1,   pts: 500, spin: null, brk: 110 },
+  S: { name: 'SAUCER',  proto: mkSaucer(),  hp: 4, r: 7,   speed: 40, turn: 2.4, rate: 1.7, cone: 0.80, pts: 150, spin: 'y', brk: 80 },
+  C: { name: 'CRUISER', proto: mkCruiser(), hp: 20, r: 13,  speed: 22, turn: 0.5, rate: 1.1, cone: -1,   pts: 500, spin: null, brk: 110 },
 };
 function instance(proto) {
   const o = proto.clone(), mats = [];
@@ -305,14 +305,15 @@ function updDust(vel, streak) {
 // =====================================================================
 //  STATE
 // =====================================================================
+function pref(k) { try { return localStorage.getItem(k); } catch (_) { return null; } }
 const S = {
   mode: 'title', prev: 'flight', score: 0, wave: 0, date: 0,
   energy: 100, shield: 100, sys: { RAD: 1, COM: 1, ENG: 1 },
   speed: T.cruise, throttle: T.cruise, pr: 0, yr: 0, sx: 0, sy: 0,
-  fireCD: 0, gun: 0, lock: null, wpn: 0, charge: 100, ammo: { m: 8, t: 3 }, tkMsg: '', tkT: 0, aft: false, comm: null, commQ: [], lowHail: false, docked: false, dockT: 0, dockCD: 0,
+  fireCD: 0, gun: 0, lock: null, wpn: 0, charge: 100, ammo: { m: 8, t: 3 }, tkMsg: '', tkT: 0, aft: false, comm: null, commQ: [], lowHail: false, shieldT: 0, dockWarn: 0, docked: false, dockT: 0, dockCD: 0,
   shake: 0, flash: 0, wflash: 0, msg: '', msgT: 0, msgC: CG,
   warpT: 0, warpTo: null, jumped: false, sel: null, waveT: 0, lowT: 0, time: 0,
-  invY: localStorage.getItem('sg_inv') === '1', sound: localStorage.getItem('sg_snd') !== '0',
+  invY: pref('sg_inv') === '1', sound: pref('sg_snd') !== '0',
 };
 const input = { x: 0, y: 0, fire: false, boost: false };
 const keys = {};
@@ -458,8 +459,9 @@ tap('bPause', () => { S.prev = S.mode; setMode('pause'); });
 tap('bResume', () => setMode(S.prev));
 tap('bQuit', () => { clearSector(); setMode('title'); loadScores(); });
 tap('bStart', startGame); tap('bAgain', startGame);
-tap('bInv', () => { S.invY = !S.invY; localStorage.setItem('sg_inv', S.invY ? '1' : '0'); labels(); });
-tap('bSnd', () => { S.sound = !S.sound; localStorage.setItem('sg_snd', S.sound ? '1' : '0'); labels(); });
+const store = (k, v) => { try { localStorage.setItem(k, v); } catch (_) {} };   // private browsing can refuse writes
+tap('bInv', () => { S.invY = !S.invY; store('sg_inv', S.invY ? '1' : '0'); labels(); });
+tap('bSnd', () => { S.sound = !S.sound; store('sg_snd', S.sound ? '1' : '0'); labels(); });
 tap('bGlow', () => { glc.classList.toggle('glow'); labels(); });
 function labels() {
   $('bInv').textContent = 'INVERT Y: ' + (S.invY ? 'ON' : 'OFF');
@@ -475,8 +477,8 @@ $('mz').addEventListener('pointerdown', e => {
 window.addEventListener('keydown', e => {
   if (e.target === $('ini')) return;
   keys[e.code] = true; unlockAudio();
-  if (e.code === 'KeyQ') cycleWeapon();
-  if (e.code === 'KeyV') toggleView();
+  if (e.code === 'KeyQ' && !e.repeat) cycleWeapon();
+  if (e.code === 'KeyV' && !e.repeat) toggleView();
   if (!e.repeat && (e.code === 'Equal' || e.code === 'NumpadAdd')) stepThrottle(1);
   if (!e.repeat && (e.code === 'Minus' || e.code === 'NumpadSubtract')) stepThrottle(-1);
   if (e.code === 'KeyX') fullStop();
@@ -542,25 +544,34 @@ function startWave(n) {
     fleets.push({ x: c.x, y: c.y, comp: mkComp(n), t: rand(0, stepTime() * 0.5), target: live[Math.random() * live.length | 0] });
   }
   sfx.alarm();
-  hail('HOME', n === 1 ? `Starguard, this is Home Control. ${fleets.length} raider fleets inbound. Open your scan and intercept.`
-                       : `Home Control. New contacts, ${fleets.length} raider fleets on the board. Wave ${n}.`);
+  hail('HOME', () => n === 1 ? `Starguard, this is Home Control. ${fleets.length} raider fleets inbound. Open your scan and intercept.`
+                       : `Home Control. New contacts, ${fleets.length} raider fleets on the board. Wave ${n}.`, 1, 'count');
 }
+// True once the player is actually in sector S.sx,S.sy. During a warp that is from the jump onward, not only once the
+// warp animation ends: fleets used to slip in or out of the sector in that gap, leaving the chart and the sector out of step.
+const inSector = () => S.mode !== 'warp' || S.jumped;
+const shipsOf = f => enemies.some(e => e.fleet === f);
 function moveFleet(f) {
-  if (f.x === S.sx && f.y === S.sy && S.mode !== 'warp') return;          // engaged with the player
+  if (f.x === S.sx && f.y === S.sy && inSector()) return;                  // engaged with the player
   if (!f.target || f.target.hp <= 0) {
     const live = bases.filter(b => b.hp > 0); if (!live.length) return;
     f.target = live.reduce((a, b) => cheb(f.x, f.y, a.x, a.y) <= cheb(f.x, f.y, b.x, b.y) ? a : b);
   }
   const b = f.target; if (f.x === b.x && f.y === b.y) return;
   const nx = f.x + Math.sign(b.x - f.x), ny = f.y + Math.sign(b.y - f.y);
-  if (fleets.some(o => o !== f && o.x === nx && o.y === ny)) return;
+  if (fleets.some(o => o !== f && o.x === nx && o.y === ny)) {
+    if (nx === b.x && ny === b.y) { const free = bases.filter(o => o.hp > 0 && o !== b && !fleetAt(o.x, o.y)); if (free.length) f.target = pick(free); }
+    return;
+  }
   f.x = nx; f.y = ny;
-  if (nx === S.sx && ny === S.sy && S.mode !== 'warp') {
+  if (nx === S.sx && ny === S.sy && inSector()) {
     spawnFleet(f); say('ALERT  FLEET WARPING IN', CR); sfx.alarm(); hail('RAIDER', pick(TAUNTS.arrive), 0);
   } else if (nx === b.x && ny === b.y) { sfx.alarm(); hail(b.name, `Mayday, mayday. ${stationName(b)} is under attack. We need you here, Starguard.`, 2); }
 }
 function updStrategy(dt) {
   S.date += dt;
+  // safety net: a fleet charted in the player's sector must have its ships in space
+  if (inSector()) for (const f of fleets) if (f.x === S.sx && f.y === S.sy && !shipsOf(f)) spawnFleet(f);
   for (const f of fleets) { f.t += dt; while (f.t >= stepTime()) { f.t -= stepTime(); moveFleet(f); } }
   for (const f of fleets) {
     const b = baseAt(f.x, f.y); if (!b) continue;
@@ -569,23 +580,24 @@ function updStrategy(dt) {
     if (b.hp <= 0) {
       b.hp = 0;
       if (b === curBase && baseObj) { explode(baseObj.position, 30); scene.remove(baseObj); baseObj = null; curBase = null; S.docked = false; }
-      if (b.home) return gameOver('HOME BASE DESTROYED');
-      sfx.boom(true); say(`${b.name} BASE LOST`, CR, 3); hail('HOME', `We have lost ${stationName(b)}. All hands. Do not let it happen again.`, 2);
+      if (b.home) return gameOver('HOME CONTROL DESTROYED');
+      sfx.boom(true); say(`${stationName(b).toUpperCase()} LOST`, CR, 3); hail('HOME', `We have lost ${stationName(b)}. All hands. Do not let it happen again.`, 2);
     }
   }
   if (!fleets.length && S.waveT <= 0) {
     S.waveT = 4; S.score += 1000 * S.wave; say(`WAVE ${S.wave} CLEAR  +${1000 * S.wave}`, '#fff', 3.5); sfx.dock();
-    hail('HOME', 'The board is clear. Outstanding work, Starguard. Stand by for new contacts.');
+    hail('HOME', 'The board is clear. Outstanding work, Starguard. Stand by for new contacts.', 1, 'count');
     for (const b of bases) if (b.hp > 0) b.hp = Math.min(100, b.hp + 25);
   }
   if (S.waveT > 0) { S.waveT -= dt; if (S.waveT <= 0 && !fleets.length) startWave(S.wave + 1); }
-  $('bMap').classList.toggle('alert', fleets.some(f => baseAt(f.x, f.y)));
+  $('bMap').classList.toggle('alert', !!S.sys.COM && fleets.some(f => baseAt(f.x, f.y)));
 }
 
 // =====================================================================
 //  SECTOR CONTENTS
 // =====================================================================
 function clearSector() {
+  for (const d of debris) d.o.geometry.dispose();
   for (const list of [enemies, bolts, lasers, ords, debris]) { for (const e of list) scene.remove(e.o); list.length = 0; }
   if (baseObj) { scene.remove(baseObj); baseObj = null; }
   curBase = null; S.docked = false; S.lock = null;
@@ -606,7 +618,7 @@ function spawnFleet(f) {
   for (const t of f.comp) {
     const def = ET[t], inst = instance(def.proto), e = {
       o: new THREE.Group(), model: inst.o, mats: inst.mats, def, type: t, fleet: f, hp: def.hp,
-      cd: rand(1, 3), mode: 'attack', modeT: 0, evade: V(), vel: V(), flash: 0,
+      cd: rand(1, 3), mode: 'attack', modeT: 0, evade: V(), vel: V(), flash: 0, ramCD: 0,
     };
     e.o.add(inst.o);
     _a.set(rand(-0.9, 0.9), rand(-0.35, 0.35), -rand(0.5, 1)).normalize().applyQuaternion(ship.quaternion);
@@ -682,7 +694,7 @@ function fireOrdnance(kind) {                       // 1 = homing missile, 2 = a
 function detonate(d) {
   const p = d.o.position;
   explode(p, 26, 0xffffff); sfx.boom(true); S.shake = Math.max(S.shake, 0.25);
-  for (const e of enemies.slice()) { const dist = e.o.position.distanceTo(p); if (dist < T.torpBlast) damageEnemy(e, dist < T.torpBlast * 0.55 ? 8 : 4); }
+  for (const e of enemies.slice()) { const dist = e.o.position.distanceTo(p); if (dist < T.torpBlast) damageEnemy(e, dist < T.torpBlast * 0.55 ? T.torpDmg : T.torpDmg / 2); }
   for (let j = bolts.length - 1; j >= 0; j--) if (bolts[j].o.position.distanceTo(p) < T.torpBlast) { scene.remove(bolts[j].o); bolts.splice(j, 1); }
 }
 function updOrds(dt) {
@@ -715,9 +727,10 @@ function segHit(a, b, c, r) {                       // segment a-b vs sphere (c,
   return _d.copy(a).addScaledVector(_c, t).distanceToSquared(c) < r * r;
 }
 function damageEnemy(e, d) {
+  if (e.dead) return;                                 // never count one ship twice
   e.hp -= d; e.flash = 0.12;
   if (e.hp > 0) return sfx.tick();
-  explode(e.o.position, e.def.r); sfx.boom(e.type === 'C');
+  e.dead = true; explode(e.o.position, e.def.r); sfx.boom(e.type === 'C');
   scene.remove(e.o); enemies.splice(enemies.indexOf(e), 1);
   if (!enemies.length) { for (const b of bolts) { explode(b.o.position, 1.5, RED); scene.remove(b.o); } bolts.length = 0; }
   S.score += e.def.pts; if (S.lock === e) S.lock = null;
@@ -725,18 +738,19 @@ function damageEnemy(e, d) {
   if (!f.comp.length) {
     fleets.splice(fleets.indexOf(f), 1); S.score += 300;
     const tb = f.target && f.target.hp > 0 ? f.target : bases[0];
-    if (fleets.length) hail(tb.name, pick([`Splash one fleet. ${fleets.length} still out there.`, `Good shooting, Starguard. ${fleets.length} to go.`, `${stationName(tb)} here. We owe you one. ${fleets.length} fleets remain.`]));
+    hail(tb.name, () => { const n = fleets.length; return n ? pick([`Splash one fleet. ${n} still out there.`, `Good shooting, Starguard. ${n} to go.`, `${stationName(tb)} here. We owe you one. ${n} left on the board.`]) : null; }, 1, 'count');
   } else if (Math.random() < 0.3) {
     hail('RAIDER', pick(TAUNTS.kill), 0);
   }
 }
 function hitPlayer(dmg) {
   if (S.mode !== 'flight') return;
-  S.flash = 0.45; S.shake = 0.4; sfx.hit();
+  S.flash = 0.45; S.shake = 0.4; S.shieldT = T.shieldDelay; sfx.hit();
   if (S.shield > 0) { S.shield = Math.max(0, S.shield - dmg); if (S.shield === 0) { say('SHIELDS DOWN', CR); if (enemies.length) hail('RAIDER', pick(TAUNTS.shield), 0); } return; }
   const ok = Object.keys(S.sys).filter(k => S.sys[k]);
   if (!ok.length) return gameOver('SHIP DESTROYED');
   const k = ok[Math.random() * ok.length | 0]; S.sys[k] = 0;
+  if (k === 'COM') { S.comm = null; S.commQ = []; }      // the channel dies with the comms
   say({ RAD: 'RADAR', COM: 'COMMS', ENG: 'ENGINE' }[k] + ' DAMAGED', CR);
 }
 
@@ -761,7 +775,11 @@ function updEnemy(e, dt) {
     if (_b.dot(_c) > def.cone) { fireBolt(e, dist); e.cd = def.rate * rand(0.7, 1.4); }
   }
   if (e.flash > 0) { e.flash -= dt; const c = e.flash > 0 ? 0xffffff : G; for (const m of e.mats) m.color.setHex(c); }
-  if (dist < def.r + 3) { hitPlayer(25); damageEnemy(e, 3); }
+  if (e.ramCD > 0) e.ramCD -= dt;
+  else if (dist < def.r + 3) {
+    e.ramCD = 1.5; e.mode = 'evade'; e.modeT = 2.5; e.evade.subVectors(p, ship.position).normalize();
+    hitPlayer(25); damageEnemy(e, 3);
+  }
 }
 
 function updFlight(dt) {
@@ -785,13 +803,16 @@ function updFlight(dt) {
   if (baseObj) {
     baseObj.rotation.z += dt * 0.15;
     const d = ship.position.distanceTo(baseObj.position);
-    if (!S.docked && S.dockCD <= 0 && d < 42) { S.docked = true; S.dockT = 0; sfx.dock(); hail(curBase.name, `${stationName(curBase)}. Docking clamps engaged. Refuelling and rearming now.`); }
+    if (S.dockWarn > 0) S.dockWarn -= dt;
+    if (S.docked && enemies.length) { launch(); say('RAIDERS INBOUND   EMERGENCY LAUNCH', CR); sfx.alarm(); }
+    else if (!S.docked && d < 42 && enemies.length && S.dockWarn <= 0) { S.dockWarn = 4; say('HOSTILES IN SECTOR   CANNOT DOCK', CR); sfx.deny(); }
+    if (!S.docked && S.dockCD <= 0 && d < 42 && !enemies.length) { S.docked = true; S.dockT = 0; sfx.dock(); hail(curBase.name, `${stationName(curBase)}. Docking clamps engaged. Refuelling and rearming now.`); }
     if (S.docked) {
       target = 0; S.speed = 0; S.dockT += dt;
       S.energy = Math.min(100, S.energy + 30 * dt); S.shield = Math.min(100, S.shield + 45 * dt);
       S.charge = Math.min(100, S.charge + 60 * dt);
-      if (S.dockT > 1.2 && !(S.sys.RAD && S.sys.COM && S.sys.ENG && S.ammo.m === 8 && S.ammo.t === 3)) {
-        S.sys.RAD = S.sys.COM = S.sys.ENG = 1; S.ammo.m = 8; S.ammo.t = 3; wpnLabel(); say('REPAIRED AND REARMED'); sfx.dock();
+      if (S.dockT > 1.2 && !(S.sys.RAD && S.sys.COM && S.sys.ENG && S.ammo.m === WPN[1].max && S.ammo.t === WPN[2].max)) {
+        S.sys.RAD = S.sys.COM = S.sys.ENG = 1; S.ammo.m = WPN[1].max; S.ammo.t = WPN[2].max; wpnLabel(); say('REPAIRED AND REARMED'); sfx.dock();
       }
       if (boost && S.dockT > 0.6) launch();
     }
@@ -800,7 +821,8 @@ function updFlight(dt) {
   shipFwd(vel).multiplyScalar(S.speed); ship.position.addScaledVector(vel, dt);
 
   // --- shields trickle-charge from the energy tank
-  if (S.shield < 100 && S.energy > 0 && !S.docked) { S.shield = Math.min(100, S.shield + T.shieldRegen * dt); S.energy -= T.shieldCost * dt; }
+  if (S.shieldT > 0) S.shieldT -= dt;
+  else if (S.shield < 100 && S.energy > 0 && !S.docked) { S.shield = Math.min(100, S.shield + T.shieldRegen * dt); S.energy -= T.shieldCost * dt; }
   S.energy = Math.max(0, S.energy);
   if (S.energy < 20 && !S.lowHail) { S.lowHail = true; hail('HOME', 'Starguard, your tank is nearly dry. Break off and dock.'); } else if (S.energy > 50) S.lowHail = false;
 
@@ -839,8 +861,8 @@ function updFlight(dt) {
     if (dead) { scene.remove(l.o); lasers.splice(i, 1); }
   }
   for (let i = bolts.length - 1; i >= 0; i--) {
-    const b = bolts[i]; b.o.position.addScaledVector(b.vel, dt); b.o.rotation.x += dt * 9; b.o.rotation.y += dt * 7; b.life -= dt;
-    const hit = b.o.position.distanceToSquared(ship.position) < 12;
+    const b = bolts[i], from = _a.copy(b.o.position); b.o.position.addScaledVector(b.vel, dt); b.o.rotation.x += dt * 9; b.o.rotation.y += dt * 7; b.life -= dt;
+    const hit = segHit(from, b.o.position, ship.position, 3.5);
     if (hit || b.life <= 0) { scene.remove(b.o); bolts.splice(i, 1); if (hit && !S.docked) { hitPlayer(T.boltDmg); if (S.mode !== 'flight') return; } }
   }
   updOrds(dt); if (S.mode !== 'flight') return;
@@ -865,9 +887,11 @@ function tryWarp() {
   if (S.mode !== 'map' || !S.sel) return;
   const { x, y } = S.sel;
   if (x === S.sx && y === S.sy) return sfx.deny();
-  const cost = warpCost(x, y);
-  if (S.energy < cost) { say('INSUFFICIENT ENERGY', CR); return sfx.deny(); }
-  S.energy -= cost; S.warpTo = { x, y, d: cheb(x, y, S.sx, S.sy) }; S.warpT = 0; S.jumped = false;
+  const cost = warpCost(x, y), emergency = S.energy < cost;
+  if (emergency && !baseAt(x, y)) { say('INSUFFICIENT ENERGY', CR); return sfx.deny(); }
+  // emergency jump: only to a base, drains the tank and the shields, and takes twice as long
+  if (emergency) { S.energy = 0; S.shield = 0; } else S.energy -= cost;
+  S.warpTo = { x, y, d: cheb(x, y, S.sx, S.sy) * (emergency ? 2 : 1) }; S.warpT = 0; S.jumped = false;
   S.docked = false; setView(false); setMode('warp'); sfx.warp();
 }
 const WARP_LEN = 1.7;
@@ -917,15 +941,25 @@ const TAUNTS = {
   kill:   ['You will answer for that.', 'One ship. We have a thousand more.', 'Lucky shot, guardian.'],
   shield: ['Your shields are gone. Now you burn.', 'No shield, no hope. Finish it.'],
 };
-function hail(who, line, pri = 1) {        // pri 0 = chatter, dropped if the channel is busy
+// line may be a function: it is evaluated when the speaker actually starts, so counts are never stale, and may return
+// null to say nothing. A tag marks lines about the same subject: a newer one replaces any older one, spoken or queued.
+function hail(who, line, pri = 1, tag = null) {   // pri 0 = chatter, dropped if the channel is busy
   if (!S.sys.COM || !['flight', 'map', 'warp'].includes(S.mode)) return;   // comms out = silence
-  const h = { sp: SPEAKERS[who] || SPEAKERS.HOME, text: line, t: 0, bt: 0, talk: 0 };
-  if (!S.comm && !S.commQ.length) { S.comm = h; sfx.hail(); }
+  const h = { sp: SPEAKERS[who] || SPEAKERS.HOME, line, text: '', t: 0, bt: 0, talk: 0, tag };
+  if (tag) { S.commQ = S.commQ.filter(q => q.tag !== tag); if (S.comm && S.comm.tag === tag) S.comm = null; }
+  if (!S.comm && !S.commQ.length) openChannel(h);
   else if (pri > 0 && S.commQ.length < 2) S.commQ.push(h);
 }
+function openChannel(h) {
+  h.text = typeof h.line === 'function' ? h.line() : h.line;
+  if (!h.text) return false;
+  S.comm = h; sfx.hail(); return true;
+}
 function updComm(dt) {
-  if (!S.comm) { if (!S.commQ.length) return; S.comm = S.commQ.shift(); sfx.hail(); }
-  const c = S.comm; c.t += dt;
+  while (!S.comm && S.commQ.length) openChannel(S.commQ.shift());
+  if (!S.comm) return;
+  const c = S.comm; if (S.msgT > 0 && c.t === 0) return;   // hold the line open until the alert has been read
+  c.t += dt;
   const typing = c.t * COMM_CPS < c.text.length;
   c.talk = typing ? 0.3 + 0.7 * Math.abs(Math.sin(c.t * 19) * Math.sin(c.t * 6.3)) : Math.max(0, c.talk - dt * 6);
   if (typing) { c.bt -= dt; if (c.bt <= 0) { c.bt = 0.075; const f = c.sp.pitch * rand(0.9, 1.3); tone(f, f, 0.04, c.sp.hostile ? 'sawtooth' : 'square', 0.02); } }
@@ -1153,10 +1187,11 @@ function drawCockpit() {
 const TAPE_FONT = '"Share Tech Mono","Courier New",monospace', AMBER = '#f4bd8c', AMBER_DIM = '#a8743c';
 if (document.fonts && document.fonts.load) document.fonts.load('16px "Share Tech Mono"').catch(() => {});   // canvas text will not fetch a web font by itself
 function radioItems() {                  // what the subspace radio reads out when nothing urgent is happening
-  const cap = n => n[0] + n.slice(1).toLowerCase(), items = [`Nav: holding in sector ${secName(S.sx, S.sy)}`];
+  const items = [`Nav: holding in sector ${secName(S.sx, S.sy)}`];
   if (enemies.length) items.push(`Contact: ${enemies.length} hostile${enemies.length > 1 ? 's' : ''} in this sector`);
-  items.push(fleets.length ? `Fleet watch: ${fleets.length} raider fleet${fleets.length > 1 ? 's' : ''} at large` : 'Fleet watch: no raider fleets on the board');
-  for (const b of bases) items.push(b.hp <= 0 ? `${cap(b.name)} base lost` : fleetAt(b.x, b.y) ? `${cap(b.name)} base under attack, holding at ${Math.ceil(b.hp)}%` : `${cap(b.name)} base secure at ${Math.ceil(b.hp)}%`);
+  if (!S.sys.COM) items.push('Comms out: no fleet or station reports');
+  else items.push(fleets.length ? `Fleet watch: ${fleets.length} raider fleet${fleets.length > 1 ? 's' : ''} at large` : 'Fleet watch: no raider fleets on the board');
+  if (S.sys.COM) for (const b of bases) items.push(b.hp <= 0 ? `${stationName(b)} lost` : fleetAt(b.x, b.y) ? `${stationName(b)} under attack, holding at ${Math.ceil(b.hp)}%` : `${stationName(b)} secure at ${Math.ceil(b.hp)}%`);
   for (const [k, n] of [['RAD', 'radar'], ['COM', 'comms'], ['ENG', 'engine']]) if (!S.sys[k]) items.push(`Damage report: ${n} out, dock to repair`);
   return items;
 }
@@ -1263,10 +1298,11 @@ function drawMap() {
     if (!here) { ctx.save(); ctx.setLineDash([6, 4]); ctx.beginPath(); ctx.moveTo(ux, uy); ctx.lineTo(sx, sy); ctx.stroke(); ctx.restore(); }
     const d = cheb(x, y, S.sx, S.sy), cost = warpCost(x, y), b = baseAt(x, y), f = fleetAt(x, y);
     line('TARGET ' + secName(x, y), '#fff', 14);
-    line(b ? b.name + ' BASE' : 'OPEN SPACE');
+    line(b ? stationName(b).toUpperCase() : 'OPEN SPACE');
     if (f && (S.sys.COM || here)) line(`${f.comp.length} HOSTILE${f.comp.length > 1 ? 'S' : ''}`, CR);
     py += 4;
     if (here) line('YOU ARE HERE');
+    else if (cost > S.energy && b) { line(`JUMP ${d}`); line('EMERGENCY JUMP', '#fff'); line('DRAINS TANK', CR); line('AND SHIELDS', CR); line(`TIME +${(d * 2 * T.warpDays / 10).toFixed(1)}`); can = true; }
     else { line(`JUMP ${d}`); line(`COST ${cost} EN`, cost > S.energy ? CR : CG); line(`TIME +${(d * T.warpDays / 10).toFixed(1)}`); can = cost <= S.energy; }
   } else line('TAP A SECTOR');
   if (!S.sys.COM) { py += 4; line('COMMS DOWN', CR); line('FLEETS HIDDEN', CR); }
@@ -1289,7 +1325,7 @@ function drawHUD(dt) {
 function startGame() {
   unlockAudio();
   Object.assign(S, { score: 0, wave: 0, date: 0, energy: 100, shield: 100, pr: 0, yr: 0, fireCD: 0, dockCD: 0,
-                     shake: 0, flash: 0, wflash: 0, waveT: 0, sel: null, msgT: 0, wpn: 0, charge: 100, comm: null, commQ: [], lowHail: false });
+                     shake: 0, flash: 0, wflash: 0, waveT: 0, sel: null, msgT: 0, wpn: 0, charge: 100, comm: null, commQ: [], lowHail: false, shieldT: 0, dockWarn: 0, jumped: true, warpTo: null, lock: null });
   S.sys = { RAD: 1, COM: 1, ENG: 1 }; S.ammo = { m: 8, t: 3 }; wpnLabel();
   bases = [{ x: 1, y: 3, hp: 100, home: true, name: 'HOME' }, { x: 4, y: 1, hp: 100, name: 'BETA' }, { x: 3, y: 5, hp: 100, name: 'GAMMA' }];
   fleets = []; S.sx = 1; S.sy = 3;
@@ -1302,7 +1338,8 @@ function gameOver(why) {
   explode(ship.position.clone().addScaledVector(shipFwd(_a), 12), 14, RED); sfx.boom(true);
   $('why').textContent = why; $('fin').textContent = `SCORE ${S.score}   WAVE ${S.wave}`;
   $('saveRow').style.display = S.score > 0 ? 'flex' : 'none'; $('bSave').textContent = 'SAVE SCORE';
-  $('bMap').classList.remove('alert'); S.comm = null; S.commQ = []; setMode('over');
+  $('bMap').classList.remove('alert'); S.comm = null; S.commQ = [];
+  camera.fov = FOV; camera.updateProjectionMatrix(); camera.rotation.z = 0; setMode('over');
 }
 function showScores(list) {
   $('hi').textContent = list && list.length ? 'HIGH SCORES\n' + list.slice(0, 5).map((s, i) =>
