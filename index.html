@@ -35,7 +35,7 @@ body[data-mode=flight] .fo{display:flex}
 body[data-mode=map] .mo{display:flex}
 #lz{position:fixed;left:0;top:0;bottom:0;width:46%}
 #mz,#tz{position:fixed;inset:0}
-.sub{border-width:1px;border-radius:3px;font-size:11px;box-shadow:none;letter-spacing:0}
+.sub{border-width:1px;border-radius:3px;font-size:17px;box-shadow:none;letter-spacing:0}
 .sub[hidden]{display:none!important}
 #bTgt{border:0;background:none}
 #sb,#sk{position:fixed;left:0;top:0;border-radius:50%;pointer-events:none;border:2px solid var(--g)}
@@ -1015,6 +1015,7 @@ function cycleTarget() {                   // keyboard: step through hostiles ne
   if (baseObj) list.push(BASE_T);
   const i = list.indexOf(S.target); setTarget(i + 1 < list.length ? list[i + 1] : (i < 0 && list.length ? list[0] : null));
 }
+const SUB_H = 32;                          // height of the previous/next subsystem buttons along the bottom of the scope
 let tgtKey = '';
 function targetUI() {                      // show and place the scope's touch buttons: clear (the wireframe itself), previous and next subsystem
   const show = S.mode === 'flight' && !!S.target && !(S.comm && S.comm.t > 0), shipT = show && !S.target.base;
@@ -1023,15 +1024,15 @@ function targetUI() {                      // show and place the scope's touch b
   const D = dash(), r = D.r + 2, x = D.cx - r, y = D.yC + 55 - r, w = 2 * r, key = [x, y, w].join();
   if (key === tgtKey) return; tgtKey = key;
   const put = (id, l, t, ww, hh) => Object.assign($(id).style, { left: l + 'px', top: t + 'px', width: ww + 'px', height: hh + 'px' });
-  put('bSubP', x, y + w - 26, 24, 26); put('bSubN', x + w - 24, y + w - 26, 24, 26); put('bTgt', x, y, w, w - 26);
+  put('bSubP', x, y + w - SUB_H, w / 2, SUB_H); put('bSubN', x + w / 2, y + w - SUB_H, w / 2, SUB_H); put('bTgt', x, y, w, w - SUB_H);   // the two arrows share the full width of the scope
 }
 function drawTarget(cx, cy, r) {           // takes the radar's place while something is targeted
   const t = S.target, isBase = !!t.base, wire = WIRE[isBase ? 'B' : t.type], col = isBase ? CG : CR;
-  const x = cx - r, y = cy - r, w = 2 * r, wh = w - 26;
+  const x = cx - r, y = cy - r, w = 2 * r, wh = w - (isBase ? 26 : SUB_H), top = isBase ? 0 : 13;   // ships: readout line on top, arrow buttons below
   ctx.fillStyle = 'rgba(0,12,4,.92)'; ctx.fillRect(x, y, w, w); ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.strokeRect(x, y, w, w);
   // turntable view, orthographic, tilted so you see the top
   const a = S.time * 0.8, ca = Math.cos(a), sa = Math.sin(a), ct = Math.cos(0.45), st = Math.sin(0.45);
-  const k = (Math.min(w, wh) / 2 - 5) / wire.rad, oy = y + wh / 2;
+  const k = (Math.min(w, wh - top) / 2 - 4) / wire.rad, oy = y + top + (wh - top) / 2;
   const P = v => { const X = v.x * ca + v.z * sa, Z = -v.x * sa + v.z * ca; return [cx + X * k, oy - (v.y * ct - Z * st) * k]; };
   ctx.save(); ctx.beginPath(); ctx.rect(x + 1, y + 1, w - 2, wh - 2); ctx.clip();
   ctx.strokeStyle = CG; ctx.lineWidth = 1; ctx.beginPath();
@@ -1053,8 +1054,8 @@ function drawTarget(cx, cy, r) {           // takes the radar's place while some
     text(curBase ? `HULL ${Math.ceil(curBase.hp)}%` : '', cx, y + wh + 22, 9, 'center', curBase && curBase.hp < 35 ? CR : CG);
   } else {
     const s = SUBS[S.subI], h = s ? t.sub[s] / t.subMax : Math.max(0, t.hp) / t.def.hp;
-    text(s ? SUB_NAME[s] : 'HULL', cx, y + wh + 11, 8, 'center', '#fff');
-    text(h <= 0 ? 'OUT' : Math.round(h * 100) + '%', cx, y + wh + 22, 10, 'center', tone(h));
+    text(s ? SUB_NAME[s] : 'HULL', x + 5, y + 11, 9, 'left', '#fff');
+    text(h <= 0 ? 'OUT' : Math.round(h * 100) + '%', x + w - 5, y + 11, 9, 'right', tone(h));
   }
 }
 
