@@ -90,7 +90,7 @@ h2{margin:0;font-size:clamp(20px,7vh,40px);letter-spacing:.18em;font-weight:norm
 #ini{width:84px;background:#000;border:2px solid var(--g);color:#fff;text-align:center;border-radius:6px;
   font:bold 20px "Courier New",monospace;letter-spacing:4px;padding:6px;text-transform:uppercase;
   -webkit-user-select:text;user-select:text;outline:none}
-@media (max-height:380px){.ov{gap:5px}.how{font-size:10px;line-height:1.4}.tb{padding:8px 22px}#hi,#hi2{font-size:10px;line-height:1.25}}
+@media (max-height:380px){#bWarp{height:48px}#bBack{height:34px;bottom:calc(var(--sb) + 70px)}.ov{gap:5px}.how{font-size:10px;line-height:1.4}.tb{padding:8px 22px}#hi,#hi2{font-size:10px;line-height:1.25}}
 #rot{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:#000;
   font-size:18px;letter-spacing:.2em;text-align:center;z-index:9}
 @media (orientation:portrait) and (max-width:700px){#rot{display:flex}}
@@ -1494,8 +1494,9 @@ function drawMap() {
   { const [x, y] = cen(S.sx, S.sy), s = cs * 0.34; ctx.strokeStyle = ctx.shadowColor = '#fff'; if ((S.time * 3 | 0) % 2) bracket(x, y, s);
     text('YOU', x - s + 2, y + s - 3, 8, 'left', '#fff'); }
   // selection + side panel
-  const px = W - SAFE.r - 140; let py = SAFE.t + 58;
-  const line = (s, c = CG, size = 11) => { text(s, px, py, size, 'left', c); py += size + 5; };
+  // side panel: rows are collected first, then squeezed if needed so they always end above the COCKPIT button
+  const px = W - SAFE.r - 140, rows = [];
+  const line = (s, c = CG, size = 11) => rows.push([s, c, size]), gap = () => rows.push(null);
   ctx.shadowColor = CG;
   let can = false;
   if (S.sel) {
@@ -1506,14 +1507,17 @@ function drawMap() {
     line('TARGET ' + secName(x, y), '#fff', 14);
     line(b ? stationName(b).toUpperCase() : 'OPEN SPACE');
     if (f && (S.sys.COM || here)) line(`${f.comp.length} HOSTILE${f.comp.length > 1 ? 'S' : ''}`, CR);
-    py += 4;
+    gap();
     if (here) line('YOU ARE HERE');
     else if (cost > S.energy && b) { line(`JUMP ${d}`); line('EMERGENCY JUMP', '#fff'); line('EMPTIES TANK', CR); line('DROPS SHIELDS', CR); if (S.sys.RAD || S.sys.COM || S.sys.ENG) line('BREAKS A SYSTEM', CR); line(`TIME +${(d * 2 * T.warpDays / 10).toFixed(1)}`); can = true; }
     else { line(`JUMP ${d}`); line(`COST ${cost} EN`, cost > S.energy ? CR : CG); line(`TIME +${(d * T.warpDays / 10).toFixed(1)}`); can = cost <= S.energy; }
   } else line('TAP A SECTOR');
-  if (!S.sys.COM) { py += 4; line('COMMS DOWN', CR); line('FLEETS HIDDEN', CR); }
-  if (enemies.length && (S.time * 3 | 0) % 2) { py += 4; line('UNDER ATTACK', CR); py -= 4; } else if (enemies.length) py += 16;   // the fight goes on while you read the chart
-  py += 4; line(`ENERGY ${Math.round(S.energy)}`, S.energy < 25 ? CR : CG); line(`SHIELD ${Math.round(S.shield)}`, S.shield < 25 ? CR : CG);
+  if (!S.sys.COM) { gap(); line('COMMS DOWN', CR); line('FLEETS HIDDEN', CR); }
+  if (enemies.length) { gap(); line('UNDER ATTACK', (S.time * 3 | 0) % 2 ? CR : 'rgba(0,0,0,0)'); }   // the fight goes on while you read the chart
+  gap(); line(`ENERGY ${Math.round(S.energy)}`, S.energy < 25 ? CR : CG); line(`SHIELD ${Math.round(S.shield)}`, S.shield < 25 ? CR : CG);
+  { const top = SAFE.t + 42, btnTop = H - SAFE.b - (H <= 380 ? 104 : 130), avail = btnTop - 8 - top;   // btnTop mirrors the #bBack CSS
+    const natural = rows.reduce((a, r) => a + (r ? r[2] + 5 : 4), 0), k = Math.min(1, avail / natural); let y = top;
+    for (const r of rows) { if (!r) { y += 4 * k; continue; } y += (r[2] + 5) * k; text(r[0], px, y - 4 * k, Math.max(7, Math.round(r[2] * k)), 'left', r[1]); } }
   $('bWarp').classList.toggle('off', !can);
   ctx.shadowBlur = 0;
 }
