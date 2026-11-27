@@ -50,10 +50,22 @@ python3 -m venv .venv
 | `app.py` | Flask app. Serves the page and a small high-score API (`GET` and `POST /api/scores`), stored in `scores.json`. |
 | `deploy/` | systemd unit (gunicorn on port 5079), the nginx block that mounts it at `/starguard/`, and `publish.sh`, which installs both. |
 | `docs/requirements/` | The requirements document: numbered requirements plus annotated screenshots of the cockpit, targeting, comms and nav computer. Open `index.html` in a browser. |
+| `tools/tests/` | Browser smoke scripts (Playwright). Each drives the running game and prints what it found for a person to read; they do not assert pass or fail. |
+| `tools/docs/` | Builds the requirements document: `build.sh` re-shoots the figures and reassembles the page. The requirement text lives in `mkreq.py`. |
 
 ## Deployment
 
 `sh deploy/publish.sh` installs the service and adds the nginx block on the dev box, then reloads nginx. It is safe to re-run. The service serves this folder directly, so edits to `index.html` are live as soon as they are saved.
+
+## Tests and tools
+
+```sh
+.venv/bin/pip install -r tools/requirements.txt && .venv/bin/playwright install chromium
+.venv/bin/python tools/tests/targeting.py        # any script in tools/tests/
+sh tools/docs/build.sh                           # rebuild docs/requirements/
+```
+
+The scripts talk to the game at `STARGUARD_URL` (default `http://127.0.0.1:5079/`) and write screenshots to `tools/out/`.
 
 ## Hat tip
 
@@ -67,3 +79,7 @@ The wireframe look is a nod to the vector arcade games of the same era, Atari's 
 ## Status
 
 A prototype. It has been tested in a headless desktop browser at phone sizes; touch feel, frame rate and audio on real iPhone and iPad hardware are not yet confirmed. High scores are submitted by the browser and are not verified. Balance is untuned, and the open questions are listed at the end of the requirements document.
+
+## Licence
+
+MIT. See [LICENSE](LICENSE).

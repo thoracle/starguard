@@ -2,3 +2,4 @@
 scores.json
 scores.json.tmp
 __pycache__/
+tools/out/

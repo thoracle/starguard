@@ -15,6 +15,7 @@ SCORES = os.path.join(BASE, "scores.json")
 KEEP = 50
 
 app = Flask(__name__, static_folder=None)
+app.config["MAX_CONTENT_LENGTH"] = 4096  # a score entry is tiny; refuse anything bigger before reading it
 lock = threading.Lock()
 
 

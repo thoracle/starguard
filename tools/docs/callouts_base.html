@@ -1,0 +1,273 @@
+<title>Starguard Cockpit Callouts</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Share+Tech+Mono&display=swap">
+<style>
+/* Layout: annotated screenshot on top, numbered legend grouped by console underneath. Single dark look, taken from the game's own vector display. */
+:root{
+  color-scheme:dark;
+  --bg:#030805; --panel:#08140c; --line:#17402a;
+  --ink:#d3f2da; --mute:#7fa58a;
+  --real:#39ff6a; --part:#ffc247; --dress:#8b98a8; --hot:#ff4a3a;
+  --mono:"Share Tech Mono","Courier New",ui-monospace,monospace;
+  --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.55}
+.wrap{max-width:1080px;margin:0 auto;padding-block:28px 56px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  display:flex;flex-direction:column;gap:36px}
+header{display:flex;flex-direction:column;gap:12px}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.22em;color:var(--mute);text-transform:uppercase}
+h1{margin:0;font-family:var(--mono);font-weight:400;font-size:clamp(26px,5vw,40px);letter-spacing:.06em;color:var(--real);text-wrap:balance}
+h2{margin:0;font-family:var(--mono);font-weight:400;font-size:20px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink)}
+h3{margin:0 0 8px;font-family:var(--mono);font-weight:400;font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--mute)}
+p{margin:0;max-width:68ch}
+.key{display:flex;flex-wrap:wrap;gap:10px 22px;list-style:none;margin:0;padding:0;font-size:14px}
+.key li{display:flex;gap:8px;align-items:baseline}
+.tag{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;padding:1px 7px;border:1px solid currentColor;border-radius:3px;white-space:nowrap}
+.real{color:var(--real)} .part{color:var(--part)} .dress{color:var(--dress)}
+.verdict{border:1px solid var(--line);background:var(--panel);padding:16px 18px;display:flex;flex-direction:column;gap:8px}
+.verdict ul{margin:0;padding-left:18px;max-width:72ch}
+.verdict li{margin:2px 0}
+section{display:flex;flex-direction:column;gap:16px}
+.scroll{overflow-x:auto;border:1px solid var(--line)}
+.shot{position:relative;min-width:720px;aspect-ratio:844/390;background:#000}
+.shot img,.shot svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+.pin{cursor:pointer}
+.pin circle{fill:#030805;stroke-width:1.4}
+.pin text{font-family:var(--mono);font-size:10px;text-anchor:middle;dominant-baseline:central}
+.pin line{stroke-width:1;opacity:.9}
+.pin.real circle,.pin.real line{stroke:var(--real)} .pin.real text{fill:var(--real)}
+.pin.part circle,.pin.part line{stroke:var(--part)} .pin.part text{fill:var(--part)}
+.pin.dress circle,.pin.dress line{stroke:var(--dress)} .pin.dress text{fill:var(--dress)}
+.pin.on circle{fill:#fff;stroke:#fff} .pin.on text{fill:#000} .pin.on line{stroke:#fff}
+.pin:focus{outline:none} .pin:focus-visible circle{stroke:#fff;stroke-width:2.5}
+.hint{font-size:13px;color:var(--mute)}
+.groups{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,440px),1fr));gap:26px 32px}
+.group{min-width:0}
+.items{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.item{display:grid;grid-template-columns:30px 1fr;gap:4px 10px;padding:10px 8px;border-top:1px solid var(--line);scroll-margin-top:16px}
+.item.on{background:var(--panel);outline:1px solid var(--mute)}
+.num{font-family:var(--mono);font-size:13px;width:24px;height:24px;border:1px solid currentColor;border-radius:50%;display:flex;align-items:center;justify-content:center;margin-top:1px}
+.head{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:baseline}
+.name{font-weight:600;color:var(--ink)}
+.desc{grid-column:2;font-size:14px;color:var(--ink);opacity:.9}
+.desc b{font-weight:600;color:#fff}
+.rank{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,440px),1fr));gap:26px 32px}
+.rank ol{list-style:none;margin:0;padding:0}
+.rank li{display:grid;grid-template-columns:30px 1fr;gap:2px 10px;padding:9px 8px;border-top:1px solid var(--line)}
+.rank .r{font-family:var(--mono);font-size:17px;color:var(--real);font-variant-numeric:tabular-nums}
+.rank .t4 .r{color:var(--dress)} .rank .t3 .r{color:var(--part)}
+.rank .why{grid-column:2;font-size:14px;opacity:.9}
+.ref{font-family:var(--mono);font-size:12px;color:var(--mute);white-space:nowrap}
+@media (prefers-reduced-motion:no-preference){.item{transition:background .15s}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Starguard prototype &middot; UI reference</div>
+    <h1>Cockpit Callouts</h1>
+    <p>Every element on the flight screen and the nav computer, what it does, and whether it is wired to the game or only there for looks. Numbers are the current tuning values in <code>index.html</code>.</p>
+    <ul class="key">
+      <li><span class="tag real">Real</span> wired to game state or input</li>
+      <li><span class="tag part">Partly</span> real, with a catch</li>
+      <li><span class="tag dress">Dressing</span> looks only, changes nothing</li>
+    </ul>
+  </header>
+
+  <div class="verdict">
+    <h3>What is fake</h3>
+    <ul>
+      <li><b>No control is fake.</b> The stick and all seven buttons act on the game, and every bar shows a live value.</li>
+      <li><b>The thruster-icon bar is the energy tank, not engine health.</b> It is the fuel everything draws on. Engine damage is a separate thing with no gauge of its own.</li>
+      <li><b>System damage has no indicator on the console.</b> Radar, comms and engine can still be knocked out. The subspace radio reports it and keeps repeating it until you dock. Damaged comms also silences every hail.</li>
+      <li><b>The talking head is mostly flavour.</b> It tells you who is calling, but the message itself is the text on the strip, and the head hides the radar while it is up.</li>
+      <li><b>DATE is a real clock that nothing reads.</b> It shows only on the nav computer. Warping does cost time, but the number itself never triggers anything.</li>
+      <li><b>Pure dressing:</b> the radar sweep line, the dashboard outline and panel seams, the scanlines, the stars and planet, and the nav computer bezel.</li>
+    </ul>
+  </div>
+
+  <section>
+    <h2>Ranked by usefulness</h2>
+    <p>Flight-screen elements, most useful first. This is a judgement from how the game is wired and from driving it with an autopilot, not from watching people play. The weapons, aft view, throttle steps and comms are new and least tested, so their places are the most likely to move. Numbers in brackets point to the flight-screen callouts below. Dressing is left out.</p>
+    <div class="rank">
+      <div class="group t1"><h3>Cannot play without</h3><ol>
+        <li><span class="r">1</span><div class="head"><span class="name">Flight stick</span><span class="ref">[7]</span></div><div class="why">Every second of flight goes through it.</div></li>
+        <li><span class="r">2</span><div class="head"><span class="name">FIRE</span><span class="ref">[17]</span></div><div class="why">The only way to remove a fleet.</div></li>
+        <li><span class="r">3</span><div class="head"><span class="name">Gunsight and lock diamond</span><span class="ref">[1]</span></div><div class="why">Tells you when a shot will land. Without the lock cue you are guessing at targets a few pixels wide.</div></li>
+        <li><span class="r">4</span><div class="head"><span class="name">SCAN and the nav computer</span><span class="ref">[13]</span></div><div class="why">The whole strategic game. It is the only place you see where fleets are heading and the only way to warp.</div></li>
+      </ol></div>
+      <div class="group t2"><h3>Makes you play better</h3><ol>
+        <li><span class="r">5</span><div class="head"><span class="name">Off-glass arrows</span><span class="ref">[3]</span></div><div class="why">The fastest way to find a hostile that has flown past you, which is most of a dogfight.</div></li>
+        <li><span class="r">6</span><div class="head"><span class="name">Target brackets</span><span class="ref">[2]</span></div><div class="why">Raiders are tiny at range. Red brackets are how you spot them against the stars.</div></li>
+        <li><span class="r">7</span><div class="head"><span class="name">Subspace radio and comms text</span><span class="ref">[18]</span></div><div class="why">The only channel for maydays, fleet arrivals and system damage, and the only place base health shows outside the map.</div></li>
+        <li><span class="r">8</span><div class="head"><span class="name">WEAPON selector</span><span class="ref">[14]</span></div><div class="why">Missiles end a chase the lasers would drag out, and it is the only readout of rounds left as a number.</div></li>
+        <li><span class="r">9</span><div class="head"><span class="name">Energy bar</span><span class="ref">[8]</span></div><div class="why">Energy is what ends a run. It decides when you break off and go dock.</div></li>
+        <li><span class="r">10</span><div class="head"><span class="name">Shield bar</span><span class="ref">[9]</span></div><div class="why">Tells you how many more hits you can take before systems start breaking.</div></li>
+      </ol></div>
+      <div class="group t3"><h3>Useful now and then</h3><ol>
+        <li><span class="r">11</span><div class="head"><span class="name">Throttle rocker</span><span class="ref">[15]</span></div><div class="why">Boost closes distance and LAUNCH leaves a dock. The speed steps matter less: most fights work at the default.</div></li>
+        <li><span class="r">12</span><div class="head"><span class="name">Weapon bar</span><span class="ref">[10]</span></div><div class="why">Earns its place for the laser, where it warns the capacitor is running down. For missiles and torpedoes the selector already shows the count.</div></li>
+        <li><span class="r">13</span><div class="head"><span class="name">Radar scope</span><span class="ref">[12]</span></div><div class="why">Mostly repeats the arrows. Its own contribution is shots coming from behind and the above/below tick. Small on a phone, and now hidden whenever someone is talking.</div></li>
+        <li><span class="r">14</span><div class="head"><span class="name">VIEW</span><span class="ref">[11]</span></div><div class="why">Needed for torpedoes and for shooting a pursuer, but turning to face a target usually does the same job.</div></li>
+        <li><span class="r">15</span><div class="head"><span class="name">Speed tape</span><span class="ref">[16]</span></div><div class="why">Confirms what the dust streaks suggest. Most useful for seeing the throttle setting after a few taps.</div></li>
+        <li><span class="r">16</span><div class="head"><span class="name">Talking head</span><span class="ref">[Comms 1]</span></div><div class="why">Character and a quick read on who is calling. The words on the strip carry the information, and the head costs you the radar.</div></li>
+        <li><span class="r">17</span><div class="head"><span class="name">Pause</span><span class="ref">[6]</span></div><div class="why">Needed, but a settings control more than an instrument, which is why it sits off the dashboard.</div></li>
+      </ol></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Flight screen</h2>
+    <div class="scroll"><div class="shot" id="shot-c"><img src="cockpit.png" alt="Cockpit view with three raiders in the sector, one locked, and the comms lamp showing damage"></div></div>
+    <p class="hint">Tap a number to jump to its note. Staged shot: three hostiles, one locked, missiles selected.</p>
+    <div class="groups" id="legend-c"></div>
+  </section>
+
+  <section>
+    <h2>Comms channel</h2>
+    <div class="scroll"><div class="shot" id="shot-k"><img src="comm.png" alt="Cockpit with a green faceted head on the centre display and Beta Station's mayday typed on the bottom strip"></div></div>
+    <p class="hint">Same staged fight, with Beta Station calling a mayday. The channel is one-way: they talk, you cannot reply.</p>
+    <div class="groups" id="legend-k"></div>
+    <div class="verdict">
+      <h3>Who hails you</h3>
+      <ul>
+        <li><b>Home Control</b> (peaked cap): mission start, each new wave, wave cleared, low energy, a station lost.</li>
+        <li><b>Beta Station</b> (headset) and <b>Gamma Station</b> (visor): a mayday when a fleet reaches them, a warning below 35% hull, thanks when you destroy a fleet that was heading for them, and a greeting when you dock.</li>
+        <li><b>Raider Lead</b> (horned alien, in red): taunts when you meet a fleet, when you kill one of theirs, and when your shields fail. Dropped if the channel is busy.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <h2>Nav computer</h2>
+    <div class="scroll"><div class="shot" id="shot-m"><img src="map.png" alt="Sector map with three bases, three red fleets and a selected warp target"></div></div>
+    <p class="hint">Opened with SCAN. The dogfight freezes while it is open, but the fleets keep moving.</p>
+    <div class="groups" id="legend-m"></div>
+  </section>
+</div>
+
+<script>
+// p = pin position, t = point the leader ends on (omit for no leader); both in the 844 x 390 screenshot's CSS pixels.
+const COCKPIT = [
+  { g: 'On the glass', items: [
+    { n: 1, s: 'real', name: 'Gunsight and lock diamond', p: [530, 62], t: [468, 108],
+      d: 'The crosshair is where your weapons point. When a hostile is within about 7&deg; of it and 650 units, the crosshair turns white and that target gets a red diamond, with its range in large digits underneath and its type below that. Lasers and torpedoes then lead the target for you, and missiles home on it. In aft view the sight changes to <b>-- --</b>.' },
+    { n: 2, s: 'real', name: 'Target bracket', p: [240, 54], t: [278, 87],
+      d: 'Red, drawn around every hostile on the glass and sized by distance. The base gets a dim green bracket with its range in large digits and the label BASE, so red always means hostile.' },
+    { n: 3, s: 'real', name: 'Off-glass arrow', p: [748, 120], t: [700, 150],
+      d: 'One per hostile (red) and the base (dim green) you cannot see, including any hidden behind the dashboard. It points the way to turn. <b>Hollow</b> means ahead but off the glass, <b>solid</b> means behind you.' },
+    { n: 4, s: 'real', name: 'Enemy shot', p: [590, 104], t: [545, 142],
+      d: 'Red spinning diamonds. A hit costs 13 shield and stops the shields recharging for 4 seconds. They are slow enough to dodge, your lasers can shoot them down (for no score), and a torpedo blast clears them.' },
+    { n: 5, s: 'part', name: 'Stars, dust and planet', p: [110, 150],
+      d: 'Everything else outside. Stars and the wireframe planet (some sectors have one) are backdrop: fixed at infinity, no collision, nothing to reach. The short dust streaks do show your heading and speed, and stretch during a warp.' },
+    { n: 6, s: 'real', name: 'Pause', p: [778, 25],
+      d: 'Small dim button in the upper-right corner, the one control that is not part of the dashboard. Stops everything, including the fleets. Holds the settings: invert Y, sound, glow, quit.' },
+  ]},
+  { g: 'Left console', items: [
+    { n: 7, s: 'real', name: 'Flight stick', p: [16, 236], t: [31, 250],
+      d: 'Pitch and yaw. You do not have to touch the stick itself: a thumb anywhere on the left 46% of the screen drives it. In aft view, stick up still moves the view up. INVERT Y is in the pause menu.' },
+    { n: 8, s: 'part', name: 'Energy bar (thruster icon)', p: [157, 231],
+      d: 'The energy tank, which is your fuel for everything. Boost costs 2.5 per second, shield recharge 0.6 per second, recharging the laser about 0.12 per shot, a warp 4 per sector. At zero you lose boost, shield recharge and laser recharge. Only docking refills it. Flashes red under 25. If you cannot afford a jump you can still make an emergency jump to a base, which empties the tank and the shields, burns out one system and takes twice as long. Despite the icon it does not show engine damage.' },
+    { n: 9, s: 'real', name: 'Shield bar (shield icon)', p: [183, 231],
+      d: 'Absorbs hits: 13 per shot, 25 for a collision (one hit per pass). Recharges 2.5 per second from the energy tank, but only after 4 seconds without being hit. A hit much bigger than what is left carries through to the hull. At zero, each further hit knocks out radar, comms or engine at random, and a hit with all three out destroys the ship.' },
+    { n: 10, s: 'real', name: 'Weapon bar (icon follows the weapon)', p: [209, 231],
+      d: 'Readiness of the selected weapon. <b>Laser</b> (bolt): capacitor charge, 3 per shot, refilling 9 per second. <b>Missile</b> (rocket, shown here with 6 of 8): rounds left. <b>Torpedo</b> (spiked mine): rounds left of 3. Docking refills all three.' },
+  ]},
+  { g: 'Centre console', items: [
+    { n: 11, s: 'real', name: 'VIEW', p: [301, 243], t: [301, 268],
+      d: 'Flips between fore and aft view and reads which one you are in. Weapons fire the way you are looking, so aft view gives you rear guns. The ship keeps flying forward. A warp puts you back in fore view.' },
+    { n: 12, s: 'part', name: 'Radar scope', p: [422, 241], t: [422, 266],
+      d: 'Top-down view, you in the centre, nose up, 600 units to the rim (inner ring 300). <b>Red squares</b> are hostiles, with a tick up or down if they are well above or below you. <b>Small white specks</b> are enemy shots, which vanish when the last hostile dies. A <b>ring</b> is the base. The small triangle on the rim shows which way you are looking: top for fore, bottom for aft. Goes to static if the radar is damaged, and gives way to a talking head while someone is speaking to you. The rotating sweep line is decoration.' },
+    { n: 13, s: 'real', name: 'SCAN', p: [543, 243], t: [543, 268],
+      d: 'Opens the nav computer. Flashes white while any fleet is sitting on one of your bases.' },
+  ]},
+  { g: 'Right console', items: [
+    { n: 14, s: 'real', name: 'WEAPON selector', p: [630, 229],
+      d: 'Tap to cycle laser, missile, torpedo. Shows the selected weapon and rounds left (&infin; for the laser). <b>Missiles</b> home on the locked target, or on whatever is ahead: one kills a raider or a saucer, a cruiser takes three. <b>Torpedoes</b> launch in aft view only, are unguided, and burst near a target, damaging everything within about 48 units: enough to kill a cruiser caught in the inner half.' },
+    { n: 15, s: 'real', name: 'Throttle rocker: FASTER / SLOWER', p: [692, 229],
+      d: '<b>Tap</b> either half to step the speed setting by 10, from 0 to 50. It starts at 40 and holds until changed. <b>Hold FASTER</b> to boost to 95 at 2.5 energy per second, dropping back when released. <b>Hold SLOWER</b> for a full stop. SLOWER dims and does nothing once you are stopped. While docked the top half reads LAUNCH and flashes. You cannot dock while hostiles are in the sector, and you are launched if they arrive.' },
+    { n: 16, s: 'real', name: 'Speed tape', p: [728, 229],
+      d: 'Current speed as a fill from the bottom: empty is stopped, full is boost speed. The side ticks mark your throttle setting, and any segments above them light white, which is what boosting looks like.' },
+    { n: 17, s: 'real', name: 'FIRE', p: [832, 244], t: [817, 262],
+      d: 'Fires the selected weapon while held. Lasers: about 7.7 shots per second until the capacitor runs down after roughly 7 seconds, then about 3 per second. Missiles: one every 0.5 s. Torpedoes: one every 1.3 s, refused in fore view. Disabled while docked.' },
+  ]},
+  { g: 'Bottom edge and structure', items: [
+    { n: 18, s: 'real', name: 'Subspace radio', p: [826, 376],
+      d: 'Full-width teletype under the consoles. Routine traffic scrolls in amber: your sector, hostiles here, fleets at large, each station and whether it is under attack, and any damaged system. With comms damaged it reports only your own sector. Alerts interrupt it, typing on in red and holding. When someone hails you the whole strip becomes their channel, shown in the comms section below.' },
+    { n: 19, s: 'dress', name: 'Dashboard outline, seams, scanlines', p: [560, 222], t: [588, 236],
+      d: 'The console shape, the dim seams beside the centre panel and the faint scanlines over the whole screen are drawn for looks. The dashboard does hide whatever is behind it, so it costs you some view.' },
+  ]},
+];
+const COMMS = [
+  { g: 'While someone is speaking', items: [
+    { n: 1, s: 'part', name: 'Talking head', p: [422, 243], t: [422, 264],
+      d: 'Replaces the radar for as long as the caller speaks, opening with a burst of static. A caller waits up to 4 seconds for an alert to clear first, and the radar stays up while they wait. Green for your stations, red for the raider leader. The mouth moves with the speech. It shows who is calling at a glance, but you have no radar until they finish.' },
+    { n: 2, s: 'real', name: 'Caller name', p: [96, 347], t: [96, 363],
+      d: 'The SUBSPACE RADIO label changes to whoever is speaking and turns red for a hostile caller. It changes back when the channel closes.' },
+    { n: 3, s: 'real', name: 'What they are saying', p: [826, 376],
+      d: 'Their words type out on the tape in place of the routine radio traffic, with a blip per syllable. Long lines slide left so the newest words stay in view. Only red alerts such as SHIELDS DOWN cut in over a caller. With comms damaged, nobody can hail you at all.' },
+  ]},
+];
+const MAP = [
+  { g: 'The map', items: [
+    { n: 1, s: 'real', name: 'Sector grid', p: [100, 128], t: [160, 128],
+      d: 'Eight by six sectors. Tap any cell to select it as a warp target.' },
+    { n: 2, s: 'real', name: 'Base and health bar', p: [432, 100], t: [403, 120],
+      d: 'Your three bases. The bar under each is its health. The icon flashes red while a fleet is on it. With comms damaged the bar goes empty and nothing flashes, because no status is coming in. Losing HOME ends the game; the other two can be lost.' },
+    { n: 3, s: 'real', name: 'Enemy fleet', p: [592, 272], t: [566, 290],
+      d: 'One wedge per ship, so you can count them before you jump. A larger wedge is a cruiser. Hidden when COM is damaged, except in your own sector.' },
+    { n: 4, s: 'real', name: 'Fleet heading', p: [462, 162], t: [500, 139],
+      d: 'Dotted red line from each fleet to the base it is going for. Fleets move one sector every 20 seconds in wave 1, faster in later waves. Time skipped by your own warps moves them too, and wears down any base they are sitting on.' },
+    { n: 5, s: 'real', name: 'You', p: [178, 212], t: [204, 226],
+      d: 'The blinking white bracket is your current sector.' },
+    { n: 6, s: 'real', name: 'Selected target and jump line', p: [505, 218], t: [528, 206],
+      d: 'The boxed cell is the selection. The dashed green line shows the jump from where you are.' },
+  ]},
+  { g: 'Side panel and frame', items: [
+    { n: 7, s: 'real', name: 'Target readout', p: [686, 60],
+      d: 'What is in the selected sector, then the jump distance, its energy cost and the time it adds. COST turns red if you cannot afford it. If the target is a base you cannot afford, it offers an emergency jump instead and lists what that costs. Your energy and shield are repeated below.' },
+    { n: 8, s: 'real', name: 'WARP', p: [688, 345],
+      d: 'Jumps to the selection. Greyed out when the target is your own sector, or you lack the energy and the target is not a base.' },
+    { n: 9, s: 'real', name: 'COCKPIT', p: [688, 282],
+      d: 'Closes the map and resumes the dogfight exactly where it froze.' },
+    { n: 10, s: 'part', name: 'Header line', p: [386, 22],
+      d: 'Wave, score and date. This is the only place they show during play now that they are off the cockpit. The date is a readout only: nothing in the game checks it.' },
+    { n: 11, s: 'dress', name: 'Bezel and ghost view', p: [42, 360], t: [12, 381],
+      d: 'The double frame and the NAV COMPUTER title make the map read as a cockpit screen. The faint cockpit view showing through is the frozen 3D scene.' },
+  ]},
+];
+
+const NS = 'http://www.w3.org/2000/svg', LABEL = { real: 'Real', part: 'Partly', dress: 'Dressing' };
+function build(key, groups) {
+  const shot = document.getElementById('shot-' + key), legend = document.getElementById('legend-' + key);
+  const svg = document.createElementNS(NS, 'svg'); svg.setAttribute('viewBox', '0 0 844 390');
+  const pick = (n, on) => document.querySelectorAll(`[data-k="${key}-${n}"]`).forEach(el => el.classList.toggle('on', on));
+  for (const grp of groups) {
+    const box = document.createElement('div'); box.className = 'group';
+    box.innerHTML = `<h3>${grp.g}</h3>`;
+    const ul = document.createElement('ul'); ul.className = 'items';
+    for (const it of grp.items) {
+      const g = document.createElementNS(NS, 'g'); g.setAttribute('class', 'pin ' + it.s); g.dataset.k = `${key}-${it.n}`;
+      g.setAttribute('tabindex', '0'); g.setAttribute('role', 'link'); g.setAttribute('aria-label', `${it.n}: ${it.name}`);
+      if (it.t) {                       // leader stops at the edge of the pin
+        const dx = it.t[0] - it.p[0], dy = it.t[1] - it.p[1], d = Math.hypot(dx, dy) || 1, ln = document.createElementNS(NS, 'line');
+        ln.setAttribute('x1', it.p[0] + dx / d * 9); ln.setAttribute('y1', it.p[1] + dy / d * 9); ln.setAttribute('x2', it.t[0]); ln.setAttribute('y2', it.t[1]); g.appendChild(ln);
+      }
+      const c = document.createElementNS(NS, 'circle'); c.setAttribute('cx', it.p[0]); c.setAttribute('cy', it.p[1]); c.setAttribute('r', 9);
+      const tx = document.createElementNS(NS, 'text'); tx.setAttribute('x', it.p[0]); tx.setAttribute('y', it.p[1] + 0.5); tx.textContent = it.n;
+      g.append(c, tx); svg.appendChild(g);
+      const li = document.createElement('li'); li.className = 'item'; li.id = `${key}-${it.n}`; li.dataset.k = `${key}-${it.n}`;
+      li.innerHTML = `<span class="num ${it.s}">${it.n}</span><div class="head"><span class="name">${it.name}</span><span class="tag ${it.s}">${LABEL[it.s]}</span></div><div class="desc">${it.d}</div>`;
+      ul.appendChild(li);
+      const go = () => li.scrollIntoView({ block: 'center', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+      g.addEventListener('click', go); g.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } });
+      for (const el of [g, li]) { el.addEventListener('pointerenter', () => pick(it.n, true)); el.addEventListener('pointerleave', () => pick(it.n, false)); }
+      g.addEventListener('focus', () => pick(it.n, true)); g.addEventListener('blur', () => pick(it.n, false));
+    }
+    box.appendChild(ul); legend.appendChild(box);
+  }
+  shot.appendChild(svg);
+}
+build('c', COCKPIT); build('k', COMMS); build('m', MAP);
+</script>
