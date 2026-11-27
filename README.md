@@ -55,6 +55,15 @@ python3 -m venv .venv
 
 `sh deploy/publish.sh` installs the service and adds the nginx block on the dev box, then reloads nginx. It is safe to re-run. The service serves this folder directly, so edits to `index.html` are live as soon as they are saved.
 
+## Hat tip
+
+Starguard is an original game, but it stands on two classics and owes them its shape:
+
+- **Star Raiders** (Atari, designed by Doug Neubauer for the Atari 8-bit computers), which established the form: a first-person cockpit, a galactic chart, hyperwarp between sectors, starbases to defend and dock at, and ship systems that can be knocked out.
+- **Star Luster** (Namco, 1985, Famicom), which carried that form forward and was the direct starting point for this prototype: the cockpit with radar, energy and shield readouts, the sector map with advancing enemy fleets, and bases under threat.
+
+The wireframe look is a nod to the vector arcade games of the same era, Atari's Battlezone in particular. No code, art, names or audio from any of these games is used here.
+
 ## Status
 
 A prototype. It has been tested in a headless desktop browser at phone sizes; touch feel, frame rate and audio on real iPhone and iPad hardware are not yet confirmed. High scores are submitted by the browser and are not verified. Balance is untuned, and the open questions are listed at the end of the requirements document.
