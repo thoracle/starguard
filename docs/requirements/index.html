@@ -1,0 +1,514 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+</head>
+<body style="margin:0">
+<title>Starguard Requirements</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Share+Tech+Mono&display=swap">
+<style>
+/* Layout: annotated screenshot on top, numbered legend grouped by console underneath. Single dark look, taken from the game's own vector display. */
+:root{
+  color-scheme:dark;
+  --bg:#030805; --panel:#08140c; --line:#17402a;
+  --ink:#d3f2da; --mute:#7fa58a;
+  --real:#39ff6a; --part:#ffc247; --dress:#8b98a8; --hot:#ff4a3a;
+  --mono:"Share Tech Mono","Courier New",ui-monospace,monospace;
+  --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.55}
+.wrap{max-width:1080px;margin:0 auto;padding-block:28px 56px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  display:flex;flex-direction:column;gap:36px}
+header{display:flex;flex-direction:column;gap:12px}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.22em;color:var(--mute);text-transform:uppercase}
+h1{margin:0;font-family:var(--mono);font-weight:400;font-size:clamp(26px,5vw,40px);letter-spacing:.06em;color:var(--real);text-wrap:balance}
+h2{margin:0;font-family:var(--mono);font-weight:400;font-size:20px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink)}
+h3{margin:0 0 8px;font-family:var(--mono);font-weight:400;font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--mute)}
+p{margin:0;max-width:68ch}
+.key{display:flex;flex-wrap:wrap;gap:10px 22px;list-style:none;margin:0;padding:0;font-size:14px}
+.key li{display:flex;gap:8px;align-items:baseline}
+.tag{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;padding:1px 7px;border:1px solid currentColor;border-radius:3px;white-space:nowrap}
+.real{color:var(--real)} .part{color:var(--part)} .dress{color:var(--dress)}
+.verdict{border:1px solid var(--line);background:var(--panel);padding:16px 18px;display:flex;flex-direction:column;gap:8px}
+.verdict ul{margin:0;padding-left:18px;max-width:72ch}
+.verdict li{margin:2px 0}
+section{display:flex;flex-direction:column;gap:16px}
+.scroll{overflow-x:auto;border:1px solid var(--line)}
+.shot{position:relative;min-width:720px;aspect-ratio:844/390;background:#000}
+.shot img,.shot svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+.pin{cursor:pointer}
+.pin circle{fill:#030805;stroke-width:1.4}
+.pin text{font-family:var(--mono);font-size:10px;text-anchor:middle;dominant-baseline:central}
+.pin line{stroke-width:1;opacity:.9}
+.pin.real circle,.pin.real line{stroke:var(--real)} .pin.real text{fill:var(--real)}
+.pin.part circle,.pin.part line{stroke:var(--part)} .pin.part text{fill:var(--part)}
+.pin.dress circle,.pin.dress line{stroke:var(--dress)} .pin.dress text{fill:var(--dress)}
+.pin.on circle{fill:#fff;stroke:#fff} .pin.on text{fill:#000} .pin.on line{stroke:#fff}
+.pin:focus{outline:none} .pin:focus-visible circle{stroke:#fff;stroke-width:2.5}
+.hint{font-size:13px;color:var(--mute)}
+.groups{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,440px),1fr));gap:26px 32px}
+.group{min-width:0}
+.items{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.item{display:grid;grid-template-columns:30px 1fr;gap:4px 10px;padding:10px 8px;border-top:1px solid var(--line);scroll-margin-top:16px}
+.item.on{background:var(--panel);outline:1px solid var(--mute)}
+.num{font-family:var(--mono);font-size:13px;width:24px;height:24px;border:1px solid currentColor;border-radius:50%;display:flex;align-items:center;justify-content:center;margin-top:1px}
+.head{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:baseline}
+.name{font-weight:600;color:var(--ink)}
+.desc{grid-column:2;font-size:14px;color:var(--ink);opacity:.9}
+.desc b{font-weight:600;color:#fff}
+.x-rank{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,440px),1fr));gap:26px 32px}
+.rank ol{list-style:none;margin:0;padding:0}
+.rank li{display:grid;grid-template-columns:30px 1fr;gap:2px 10px;padding:9px 8px;border-top:1px solid var(--line)}
+.rank .r{font-family:var(--mono);font-size:17px;color:var(--real);font-variant-numeric:tabular-nums}
+.rank .t4 .r{color:var(--dress)} .rank .t3 .r{color:var(--part)}
+.rank .why{grid-column:2;font-size:14px;opacity:.9}
+.ref{font-family:var(--mono);font-size:12px;color:var(--mute);white-space:nowrap}
+@media (prefers-reduced-motion:no-preference){.item{transition:background .15s}}
+.toc{display:flex;flex-wrap:wrap;gap:6px 16px;font-family:var(--mono);font-size:12px;letter-spacing:.06em}
+.toc a{color:var(--real);text-decoration:none;border-bottom:1px solid var(--line)}
+.toc a:hover,.toc a:focus-visible{border-bottom-color:var(--real);outline:none}
+.reqs{display:flex;flex-direction:column}
+.req{display:grid;grid-template-columns:64px 1fr;gap:4px 12px;padding:9px 4px;border-top:1px solid var(--line)}
+.req .id{font-family:var(--mono);font-size:12px;color:var(--mute);padding-top:2px;font-variant-numeric:tabular-nums}
+.req p{max-width:74ch}
+.req b{font-weight:600;color:#fff}
+table.tune{border-collapse:collapse;width:100%;font-size:14px}
+table.tune th{text-align:left;font-weight:500;color:var(--mute);font-family:var(--mono);font-size:12px;letter-spacing:.04em;padding:8px 14px 8px 4px;white-space:nowrap;vertical-align:top;border-top:1px solid var(--line)}
+table.tune td{padding:8px 4px;border-top:1px solid var(--line)}
+.wide{overflow-x:auto}
+section{scroll-margin-top:12px}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Starguard prototype &middot; requirements</div>
+    <h1>Starguard Requirements</h1>
+    <p>What the game must do, written from the build as it stands at commit <code>07374e8</code>. Each requirement has an ID so it can be referred to and changed on its own. The cockpit section keeps the annotated screenshots as the interface specification.</p>
+    <p class="hint">Numbers are the current tuning values and are expected to move. Rules stated without a number are intended to hold.</p>
+    <nav class="toc" aria-label="Sections"><a href="#gam">Purpose and scope</a> <a href="#plt">Platform and constraints</a> <a href="#flt">Flight</a> <a href="#wpn">Weapons</a> <a href="#tgt">Targeting and subsystems</a> <a href="#enm">Enemies</a> <a href="#sys">Ship systems and damage</a> <a href="#str">Sectors, fleets and stations</a> <a href="#wrp">Nav computer and warp</a> <a href="#dck">Docking</a> <a href="#com">Comms</a> <a href="#aud">Audio</a> <a href="#srv">Scores and server</a> <a href="#ui">Cockpit interface</a> <a href="#tuning">Tuning values</a> <a href="#open">Open questions</a></nav>
+  </header>
+
+  <section id="gam">
+    <h2>Purpose and scope</h2>
+    <p class="hint">What the game is and how a session runs.</p>
+    <div class="reqs">
+      <div class="req"><span class="id">GAM-1</span><p>Starguard is a first-person space shooter in an 80s vector-arcade style. The player flies one ship from a cockpit, fights raider fleets in space, and uses a sector map to decide where to fight.</p></div>
+      <div class="req"><span class="id">GAM-2</span><p>A session is a single run. It ends when HOME CONTROL is destroyed or the player's ship is destroyed. There is no win state; the aim is score and waves survived.</p></div>
+      <div class="req"><span class="id">GAM-3</span><p>Raider fleets arrive in numbered waves. A wave ends when every fleet on the map is destroyed. The next wave starts 8 seconds later.</p></div>
+      <div class="req"><span class="id">GAM-4</span><p>Wave <i>n</i> has 2 + <i>n</i> fleets, to a maximum of 7. Fleets hold 2 to 4 ships (raiders, saucers, at most one cruiser) and gain one extra raider every two waves after wave 5, up to 6 ships.</p></div>
+      <div class="req"><span class="id">GAM-5</span><p>No fleet may start a wave within two sectors of HOME. Fleets start at least three sectors from every station and from the player, or two sectors if on the map edge.</p></div>
+      <div class="req"><span class="id">GAM-6</span><p>Score: 100 per raider, 150 per saucer, 500 per cruiser, 300 for finishing a fleet. Clearing a wave pays (1000 + 500 for each outpost still standing) &times; wave number.</p></div>
+      <div class="req"><span class="id">GAM-7</span><p>This is a prototype for finding the fun. Tuning values in this document are the current settings and are expected to change; they all live in one tuning block in the game file.</p></div>
+    </div>
+  </section>
+
+  <section id="plt">
+    <h2>Platform and constraints</h2>
+    <p class="hint">What it must run on and what it may be built from.</p>
+    <div class="reqs">
+      <div class="req"><span class="id">PLT-1</span><p>The game is one HTML page using vanilla JavaScript and three.js, served by a small Python Flask app. No Node.js and no build step.</p></div>
+      <div class="req"><span class="id">PLT-2</span><p>The primary target is an iPhone-size screen in landscape. It must also run in a desktop browser. Layouts must hold from about 640 px wide upward; narrower screens are not supported.</p></div>
+      <div class="req"><span class="id">PLT-3</span><p>All controls are touch controls sized for thumbs. Every control also has a keyboard equivalent for desktop testing.</p></div>
+      <div class="req"><span class="id">PLT-4</span><p>The layout must respect the device safe areas (notch and home indicator), and the drawn dashboard and the touch controls must take those insets from a single reading so they cannot drift apart.</p></div>
+      <div class="req"><span class="id">PLT-5</span><p>Nothing essential may fall off a short screen. With the browser's bars showing, a phone in landscape can be as little as 300 px high: the title screen keeps LAUNCH directly under the title, overlays anchor to the top when they do not fit, and the nav computer's side panel tightens its text so it always ends above the COCKPIT button.</p></div>
+      <div class="req"><span class="id">PLT-6</span><p>The page must not zoom or scroll in response to double taps, pinches or drags on iOS and iPadOS.</p></div>
+      <div class="req"><span class="id">PLT-7</span><p>Turning the phone to portrait shows a rotate-device notice and pauses the game, including when the turn happens mid-warp. Leaving the browser tab also pauses.</p></div>
+      <div class="req"><span class="id">PLT-8</span><p>The look is green vector lines on black: wireframe models with hidden lines removed, a canopy gunsight, and scanlines. Red is reserved for hostiles and danger.</p></div>
+      <div class="req"><span class="id">PLT-9</span><p>The interface is fully diegetic. Every readout and control is part of the cockpit dashboard. The only exceptions are the pause button in the top-right corner and the gunsight markings projected on the glass.</p></div>
+      <div class="req"><span class="id">PLT-10</span><p>All sound is synthesised in the browser. The game ships no audio or image assets. three.js and the tape typeface load from public CDNs, so the device needs internet access.</p></div>
+    </div>
+  </section>
+
+  <section id="flt">
+    <h2>Flight</h2>
+    <p class="hint">How the ship moves and how the player drives it.</p>
+    <div class="reqs">
+      <div class="req"><span class="id">FLT-1</span><p>The left thumb steers with a stick that sits in a housing on the left console. A touch anywhere on the left 46% of the screen drives the stick, so the thumb need not land on it.</p></div>
+      <div class="req"><span class="id">FLT-2</span><p>Stick up pitches the nose up and stick right yaws right, at up to 1.55 rad/s with a 10% dead zone. An INVERT Y setting reverses pitch.</p></div>
+      <div class="req"><span class="id">FLT-3</span><p>The throttle is a two-part rocker. A tap on FASTER or SLOWER changes the speed setting by 10, between 0 and 50. The setting starts at 40 and holds until changed.</p></div>
+      <div class="req"><span class="id">FLT-4</span><p>Holding FASTER boosts to speed 95 for as long as it is held, at 2.5 energy per second, then returns to the setting. Holding SLOWER for 0.35 s is a full stop.</p></div>
+      <div class="req"><span class="id">FLT-5</span><p>SLOWER is disabled while the speed setting is zero. While docked, FASTER reads LAUNCH.</p></div>
+      <div class="req"><span class="id">FLT-6</span><p>A speed tape beside the rocker shows current speed from stopped (empty) to boost (full), with ticks at the throttle setting and white segments above it.</p></div>
+      <div class="req"><span class="id">FLT-7</span><p>A VIEW button switches between fore and aft view. The ship keeps flying forward. In aft view the stick still moves the view the way it is pushed.</p></div>
+      <div class="req"><span class="id">FLT-8</span><p>Weapons fire in the direction of the current view. Warping returns the view to fore.</p></div>
+      <div class="req"><span class="id">FLT-9</span><p>With the engine system damaged, all speeds drop to 55%.</p></div>
+    </div>
+  </section>
+
+  <section id="wpn">
+    <h2>Weapons</h2>
+    <p class="hint">What the player fires and what it costs.</p>
+    <div class="reqs">
+      <div class="req"><span class="id">WPN-1</span><p>A WEAPON button cycles laser, missile, torpedo and shows the selected weapon and rounds left. FIRE fires the selected weapon while held.</p></div>
+      <div class="req"><span class="id">WPN-2</span><p>Laser: about 7.7 shots per second, 1 damage, range about 680. It draws on a capacitor: 3 per shot, recharging 9 per second from the energy tank at 0.04 energy per point.</p></div>
+      <div class="req"><span class="id">WPN-3</span><p>Lasers aim themselves at a hostile within about 7&deg; of the gunsight and 650 units, leading the target. This lock is automatic and separate from the chosen target (TGT).</p></div>
+      <div class="req"><span class="id">WPN-4</span><p>Missile: 8 rounds, one every 0.5 s, 6 damage. It homes on the chosen target if there is one, otherwise on the locked hostile, otherwise on whatever is most nearly ahead of it.</p></div>
+      <div class="req"><span class="id">WPN-5</span><p>Torpedo: 3 rounds, one every 1.3 s. It fires only in aft view, is unguided, and bursts near a target or when it burns out. The burst does 20 damage in the inner half of a 48-unit radius and 10 outside it, and clears enemy shots.</p></div>
+      <div class="req"><span class="id">WPN-6</span><p>Trying to fire a torpedo in fore view, or any weapon with no rounds or no charge, is refused with a message saying why.</p></div>
+      <div class="req"><span class="id">WPN-7</span><p>A status bar on the left console shows the selected weapon's readiness: capacitor charge for the laser, rounds left for missiles and torpedoes. Its icon changes with the weapon.</p></div>
+      <div class="req"><span class="id">WPN-8</span><p>Lasers can shoot down enemy shots. Doing so scores nothing.</p></div>
+    </div>
+  </section>
+
+  <section id="tgt">
+    <h2>Targeting and subsystems</h2>
+    <p class="hint">Choosing a target by touch and aiming at parts of it.</p>
+    <div class="reqs">
+      <div class="req"><span class="id">TGT-1</span><p>Tapping a ship or the station on the glass makes it the chosen target. Tapping it again, or tapping the target scope, releases it. The target is also released when it is destroyed or the sector is left.</p></div>
+      <div class="req"><span class="id">TGT-2</span><p>A tap on a target takes priority over the stick when it lands in the stick's touch area.</p></div>
+      <div class="req"><span class="id">TGT-3</span><p>TARGET NEXT and TARGET PREV buttons, left of the radar and matching VIEW and SCAN on the right, step through the hostiles in the sector and then the station, wrapping round. With nothing chosen they start from the nearest hostile. They are dimmed when there is nothing to target.</p></div>
+      <div class="req"><span class="id">TGT-4</span><p>The chosen target wears a second, white bracket and always shows its range and name. If it is off the glass its arrow turns white.</p></div>
+      <div class="req"><span class="id">TGT-5</span><p>The target scope sits beside the radar. It shows a rotating wireframe of the chosen ship or station, or NO TARGET when nothing is chosen. Choosing a target does not hide the radar.</p></div>
+      <div class="req"><span class="id">TGT-6</span><p>Every enemy ship has three subsystems: WEAPON, SHIELD and ENGINE. The scope marks each on the wireframe, coloured by condition: green intact, amber damaged, red destroyed.</p></div>
+      <div class="req"><span class="id">TGT-7</span><p>Previous and next buttons along the bottom of the scope, each half its width, step through HULL, WEAPON, SHIELD and ENGINE. A line at the top of the scope names the selected item and shows its condition as a percentage, or OUT.</p></div>
+      <div class="req"><span class="id">TGT-8</span><p>Every hit on an enemy ship damages its hull and one subsystem. With a subsystem selected on the chosen target, the hit goes to that subsystem 80% of the time; otherwise the subsystem is random.</p></div>
+      <div class="req"><span class="id">TGT-9</span><p>A destroyed WEAPON stops the ship firing. A destroyed ENGINE leaves it 25% of its speed and turn rate. A working SHIELD absorbs half of all hull damage.</p></div>
+      <div class="req"><span class="id">TGT-10</span><p>Subsystems take 1 hit on a raider, 2 on a saucer and 5 on a cruiser.</p></div>
+      <div class="req"><span class="id">TGT-11</span><p>The station can be targeted to see its wireframe and hull percentage. It has no subsystems to select and cannot be damaged by the player.</p></div>
+    </div>
+  </section>
+
+  <section id="enm">
+    <h2>Enemies</h2>
+    <p class="hint">What the player fights.</p>
+    <div class="reqs">
+      <div class="req"><span class="id">ENM-1</span><p>Raider: hull 1, speed 52, fires forward. Saucer: hull 3, speed 40, wider firing arc. Cruiser: hull 14, speed 22, fires in any direction.</p></div>
+      <div class="req"><span class="id">ENM-2</span><p>Enemy ships fly at the player, break off inside a set distance (60, 80 or 110 units by class), loop away for a few seconds and return.</p></div>
+      <div class="req"><span class="id">ENM-3</span><p>Enemies open fire inside 500 units. Shots travel at 130, lead the player's movement with some error, and last 6 seconds.</p></div>
+      <div class="req"><span class="id">ENM-4</span><p>An enemy shot costs 13 shield. A collision costs 25 and does 3 damage to the enemy, once per pass.</p></div>
+      <div class="req"><span class="id">ENM-5</span><p>When the last hostile in a sector is destroyed, shots still in flight are removed.</p></div>
+      <div class="req"><span class="id">ENM-6</span><p>Enemies do not attack stations in space. A fleet's effect on a station is strategic (STR).</p></div>
+    </div>
+  </section>
+
+  <section id="sys">
+    <h2>Ship systems and damage</h2>
+    <p class="hint">Energy, shields and what happens when they run out.</p>
+    <div class="reqs">
+      <div class="req"><span class="id">SYS-1</span><p>The ship has an energy tank of 100 that only docking refills. Boost, shield recharge, laser recharge and warping all draw on it.</p></div>
+      <div class="req"><span class="id">SYS-2</span><p>Shields hold 100 and absorb hits. They recharge 2.5 per second at 0.6 energy per second, but only after 4 seconds without being hit.</p></div>
+      <div class="req"><span class="id">SYS-3</span><p>A hit larger than twice the remaining shield carries through to the hull as well as dropping the shields.</p></div>
+      <div class="req"><span class="id">SYS-4</span><p>A hit with shields down knocks out one of three systems at random: radar, comms or engine. A hit with all three already out destroys the ship.</p></div>
+      <div class="req"><span class="id">SYS-5</span><p>Radar out: the radar scope shows static. Comms out: no hails, no fleet or station news on the radio, no fleets or station status on the chart, no alarms for distant events. Engine out: 55% speed and double warp cost.</p></div>
+      <div class="req"><span class="id">SYS-6</span><p>With energy at zero there is no boost, no shield recharge and no laser recharge.</p></div>
+      <div class="req"><span class="id">SYS-7</span><p>Three status bars on the left console show energy, shields and the selected weapon, each with an icon. A bar flashes red below 25%.</p></div>
+    </div>
+  </section>
+
+  <section id="str">
+    <h2>Sectors, fleets and stations</h2>
+    <p class="hint">The strategic layer behind the dogfights.</p>
+    <div class="reqs">
+      <div class="req"><span class="id">STR-1</span><p>Space is an 8 by 6 grid of sectors, lettered A to H and numbered 1 to 6. The player is always in exactly one sector.</p></div>
+      <div class="req"><span class="id">STR-2</span><p>There are three stations: HOME CONTROL at B-4, BETA STATION at E-2 and GAMMA STATION at D-6. Each has 100 hull.</p></div>
+      <div class="req"><span class="id">STR-3</span><p>Each fleet heads for one live station, moving one sector at a time (diagonals allowed). The interval is 20 s in wave 1 and shortens by 2 s per wave to a minimum of 9 s.</p></div>
+      <div class="req"><span class="id">STR-4</span><p>Only one fleet may occupy a sector. A fleet blocked by another fleet already on its target, or stuck for three moves, picks a different live station.</p></div>
+      <div class="req"><span class="id">STR-5</span><p>A fleet on a station's sector drains it by 0.6 hull per second for each ship in the fleet.</p></div>
+      <div class="req"><span class="id">STR-6</span><p>A fleet in the player's sector does not move. Its ships are in space with the player, and the fleet on the chart loses a ship each time one is destroyed.</p></div>
+      <div class="req"><span class="id">STR-7</span><p>The chart and the sector must always agree: a fleet charted in the player's sector has its ships in space, and ships in space belong to a fleet charted in that sector.</p></div>
+      <div class="req"><span class="id">STR-8</span><p>When a station is destroyed its fleets retarget. If HOME CONTROL is destroyed the game ends.</p></div>
+      <div class="req"><span class="id">STR-9</span><p>Clearing a wave repairs every surviving station by 25 hull, plus 5 for each wave after the first, to a maximum of 60.</p></div>
+      <div class="req"><span class="id">STR-10</span><p>Opening the nav computer does not stop anything. Fleets keep moving, and the dogfight in the player's sector continues: the ship holds its heading and speed, cannot be steered, boosted or fired, and can be hit and destroyed. Only pause stops the game.</p></div>
+    </div>
+  </section>
+
+  <section id="wrp">
+    <h2>Nav computer and warp</h2>
+    <p class="hint">The sector chart and travelling by it.</p>
+    <div class="reqs">
+      <div class="req"><span class="id">WRP-1</span><p>SCAN, below VIEW in the centre console's button column, opens the nav computer: the sector grid, stations with hull bars, fleets drawn one wedge per ship (a larger wedge for a cruiser), each fleet's heading line, and the player's sector.</p></div>
+      <div class="req"><span class="id">WRP-2</span><p>Tapping a sector selects it. A side panel shows what is there, the jump distance, the energy cost and the time the jump adds. It flashes UNDER ATTACK while hostiles are in the player's sector.</p></div>
+      <div class="req"><span class="id">WRP-3</span><p>WARP jumps to the selected sector. It costs 4 energy per sector of distance, doubled with the engine damaged.</p></div>
+      <div class="req"><span class="id">WRP-4</span><p>A jump also costs time: every fleet gains 6 seconds of movement per sector jumped, and a station under attack takes half-rate damage for that time, though never below 15 hull.</p></div>
+      <div class="req"><span class="id">WRP-5</span><p>The player arrives at the sector origin facing the station if there is one. Hostiles in the sector are placed 300 to 460 units ahead.</p></div>
+      <div class="req"><span class="id">WRP-6</span><p>Nothing may enter or leave the destination sector, and no station takes damage, between the jump and the player regaining control.</p></div>
+      <div class="req"><span class="id">WRP-7</span><p>If the player cannot afford a jump, an emergency jump to a station's sector is still allowed. It empties the tank, drops the shields, burns out one working system, doubles the time cost, and says which system was lost on arrival.</p></div>
+      <div class="req"><span class="id">WRP-8</span><p>SCAN flashes while any fleet is on a station, unless comms are out.</p></div>
+    </div>
+  </section>
+
+  <section id="dck">
+    <h2>Docking</h2>
+    <p class="hint">Refuelling, repair and rearming.</p>
+    <div class="reqs">
+      <div class="req"><span class="id">DCK-1</span><p>Flying within 42 units of a station docks the ship, provided no hostiles are in the sector.</p></div>
+      <div class="req"><span class="id">DCK-2</span><p>While docked the ship is stationary and gains 30 energy, 45 shield and 60 laser charge per second.</p></div>
+      <div class="req"><span class="id">DCK-3</span><p>After 1.3 seconds docked, all damaged systems are repaired and missiles and torpedoes are restocked.</p></div>
+      <div class="req"><span class="id">DCK-4</span><p>LAUNCH flashes and becomes usable only once that repair and rearm has happened. Launching sets the throttle to 40 and prevents re-docking for 5 seconds.</p></div>
+      <div class="req"><span class="id">DCK-5</span><p>If hostiles arrive while the ship is docked, it is launched at once with a warning. With hostiles present, an approach to the station is refused with a message.</p></div>
+    </div>
+  </section>
+
+  <section id="com">
+    <h2>Comms</h2>
+    <p class="hint">Stations and the enemy talking to the player.</p>
+    <div class="reqs">
+      <div class="req"><span class="id">COM-1</span><p>Stations and the raider leader can hail the player. The channel is one-way.</p></div>
+      <div class="req"><span class="id">COM-2</span><p>While someone is speaking, their talking head takes over the radar display and the subspace radio strip becomes their channel: their name in the label box and their words typed on the tape. The target scope beside it stays in view.</p></div>
+      <div class="req"><span class="id">COM-3</span><p>Heads are low-polygon signed-distance models drawn by a shader: faceted, posterised, scan-lined, green for stations and red for the raider leader. Mouths move with speech and eyes blink. The three station heads are friendly robots, each a different shape; the raider leader is an alien.</p></div>
+      <div class="req"><span class="id">COM-4</span><p>Home Control speaks at mission start, each new wave, wave cleared, low energy and a station lost. Outposts send a mayday when a fleet reaches them, a warning below 35% hull, thanks for a destroyed fleet and a greeting on docking. The raider leader taunts on contact, on losing a ship and when the player's shields fail.</p></div>
+      <div class="req"><span class="id">COM-5</span><p>What a speaker says is decided at the moment they start speaking, so counts and status are never out of date. A line that is no longer true is dropped.</p></div>
+      <div class="req"><span class="id">COM-6</span><p>A caller waits for an alert to clear, for at most 4 seconds, and the radar stays up while they wait. Red and white alerts may talk over a caller; routine prompts may not.</p></div>
+      <div class="req"><span class="id">COM-7</span><p>Urgent calls jump the queue. Enemy chatter is dropped if the channel is busy. A newer line on the same subject replaces an older one.</p></div>
+      <div class="req"><span class="id">COM-8</span><p>The channel runs only while the player is in the cockpit. With comms out there are no hails at all.</p></div>
+      <div class="req"><span class="id">COM-9</span><p>When nobody is speaking, the strip scrolls routine traffic: the player's sector, hostiles present, fleets at large, each station's condition and any damaged system.</p></div>
+    </div>
+  </section>
+
+  <section id="aud">
+    <h2>Audio</h2>
+    <p class="hint">Sound.</p>
+    <div class="reqs">
+      <div class="req"><span class="id">AUD-1</span><p>Effects are synthesised: lasers, missiles, torpedoes, enemy fire, hits, explosions, warp, alarms, docking, refusals, the hail chirp and per-syllable speech blips pitched per speaker.</p></div>
+      <div class="req"><span class="id">AUD-2</span><p>An engine hum follows the ship's speed.</p></div>
+      <div class="req"><span class="id">AUD-3</span><p>Sound can be turned off in the pause menu. Audio must start on the first touch on iOS.</p></div>
+    </div>
+  </section>
+
+  <section id="srv">
+    <h2>Scores and server</h2>
+    <p class="hint">What the Flask app does.</p>
+    <div class="reqs">
+      <div class="req"><span class="id">SRV-1</span><p>The server serves the game page uncached and nothing else from the project folder.</p></div>
+      <div class="req"><span class="id">SRV-2</span><p>GET /api/scores returns the top 10 scores. POST /api/scores adds one and returns the new top 10.</p></div>
+      <div class="req"><span class="id">SRV-3</span><p>A score entry is up to three letters or digits (default ACE), a score from 0 to 10,000,000 and a wave from 0 to 999. Anything else is rejected with a 400. The server keeps the top 50 in a JSON file.</p></div>
+      <div class="req"><span class="id">SRV-4</span><p>The game-over screen shows the final score and wave, the score table, and a field to save initials. It confirms a save, reports a failed one, and cannot be dismissed in its first 1.2 seconds.</p></div>
+      <div class="req"><span class="id">SRV-5</span><p>The server address and port come from the HOST and PORT environment variables when run directly.</p></div>
+      <div class="req"><span class="id">SRV-6</span><p>The game is deployed at https://dev.retroverse.ai/starguard/ as a systemd service running gunicorn with one worker on port 5079, behind nginx, with the score endpoint rate-limited. The page uses only relative URLs so it works under a path prefix.</p></div>
+    </div>
+  </section>
+
+  <section id="ui">
+    <h2>Cockpit interface</h2>
+    <p>The four screens below are the interface specification. Every numbered element is required. Each note says what the element does; the tag says whether it is wired to game state.</p>
+    <ul class="key">
+      <li><span class="tag real">Real</span> wired to game state or input</li>
+      <li><span class="tag part">Partly</span> real, with a catch</li>
+      <li><span class="tag dress">Dressing</span> looks only, changes nothing</li>
+    </ul>
+    <div class="verdict">
+      <h3>Decoration, by intent</h3>
+      <ul>
+        <li>No control is decorative. The stick and every button act on the game, and every bar shows a live value.</li>
+        <li>Decorative only: the radar sweep line, the dashboard outline and panel seams, the scanlines, the stars and planet, and the nav computer bezel.</li>
+        <li>The thruster-icon bar is the energy tank, not engine health. System damage has no console indicator of its own; the subspace radio reports it.</li>
+        <li>DATE on the nav computer is a real clock that nothing reads.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <h2>Flight screen</h2>
+    <div class="scroll"><div class="shot" id="shot-c"><img src="cockpit.png" alt="Cockpit view with three hostiles in the sector, one auto-locked, missiles selected"></div></div>
+    <p class="hint">Tap a number to jump to its note. Staged shot: two raiders and a saucer, one raider locked, missiles selected.</p>
+    <div class="groups" id="legend-c"></div>
+  </section>
+
+  <section>
+    <h2>Targeting</h2>
+    <div class="scroll"><div class="shot" id="shot-t"><img src="target.png" alt="Cockpit with a cruiser chosen as target, its wireframe on the centre scope with the shield subsystem selected"></div></div>
+    <p class="hint">Staged shot: a cruiser chosen by tapping it, SHIELD selected and at 40%, engine destroyed.</p>
+    <div class="groups" id="legend-t"></div>
+  </section>
+
+  <section>
+    <h2>Comms channel</h2>
+    <div class="scroll"><div class="shot" id="shot-k"><img src="comm.png" alt="Cockpit with a green faceted head on the centre display and Beta Station's mayday typed on the bottom strip"></div></div>
+    <p class="hint">Staged shot: Beta Station calling a mayday. The head has taken over the radar; the target scope beside it reads NO TARGET.</p>
+    <div class="groups" id="legend-k"></div>
+  </section>
+
+  <section>
+    <h2>Nav computer</h2>
+    <div class="scroll"><div class="shot" id="shot-m"><img src="map.png" alt="Sector map with three stations, three red fleets and a selected warp target"></div></div>
+    <p class="hint">Opened with SCAN. Nothing stops while it is open: fleets keep moving and the dogfight in your sector goes on without you at the controls.</p>
+    <div class="groups" id="legend-m"></div>
+  </section>
+
+  <section id="tuning">
+    <h2>Tuning values</h2>
+    <p class="hint">Current settings, all in the tuning block at the top of the game script.</p>
+    <div class="wide"><table class="tune"><tbody>
+        <tr><th>Speeds</th><td>cruise 40 &middot; boost 95 &middot; throttle step 10, max 50 &middot; turn 1.55 rad/s</td></tr>
+        <tr><th>Laser</th><td>0.13 s between shots &middot; speed 650 &middot; 3 charge per shot &middot; recharge 9/s at 0.04 energy per point</td></tr>
+        <tr><th>Missile</th><td>8 rounds &middot; 0.5 s &middot; speed 190 &middot; 6 damage</td></tr>
+        <tr><th>Torpedo</th><td>3 rounds &middot; 1.3 s &middot; speed 130 &middot; blast 48 &middot; 20 / 10 damage</td></tr>
+        <tr><th>Aim and targeting</th><td>auto-aim cone 0.12 rad, range 650 &middot; selected subsystem takes 80% of hits &middot; enemy shield soaks 50% &middot; engine out leaves 25%</td></tr>
+        <tr><th>Enemy fire</th><td>opens at 500 &middot; shot speed 130 &middot; 13 shield per hit &middot; ram 25</td></tr>
+        <tr><th>Shields and energy</th><td>regen 2.5/s at 0.6 energy/s after a 4 s pause &middot; boost 2.5 energy/s</td></tr>
+        <tr><th>Warp and docking</th><td>4 energy per sector &middot; 6 s of fleet time per sector &middot; 1.3 s to repair and rearm</td></tr>
+        <tr><th>Fleets and stations</th><td>move every 20 s, minus 2 s per wave, minimum 9 s &middot; drain 0.6 hull/s per ship</td></tr>
+        <tr><th>Enemy hull / subsystem hits</th><td>raider 1 / 1 &middot; saucer 3 / 2 &middot; cruiser 14 / 5</td></tr>
+    </tbody></table></div>
+    <h3 style="margin-top:14px">Keyboard, for desktop testing</h3>
+    <p>WASD or arrows steer &middot; Space fire &middot; Shift boost &middot; = and - throttle &middot; X full stop &middot; Q weapon &middot; V view &middot; T and Shift+T next and previous target &middot; [ and ] subsystem &middot; M nav computer &middot; Enter warp or start &middot; P or Esc pause</p>
+  </section>
+
+  <section id="open">
+    <h2>Open questions</h2>
+    <p class="hint">Known gaps and decisions not yet made. None of these is a requirement.</p>
+    <div class="reqs">
+      <div class="req"><span class="id">OPEN-1</span><p><b>Escape by warp.</b> The fight now continues behind the nav computer, so reading the chart under fire is a risk. But WARP is still instant once tapped, and the ship cannot be steered from the chart. Whether a warp should take time to charge, or be refused under fire, is undecided.</p></div>
+      <div class="req"><span class="id">OPEN-2</span><p><b>Camping at HOME.</b> Only one fleet can sit on a station at a time, so defending HOME alone and never warping survives several waves. The outpost bonus rewards using the map but does not force it.</p></div>
+      <div class="req"><span class="id">OPEN-3</span><p><b>Laser dominance.</b> The auto-aimed laser is the right answer in most situations. Missiles and torpedoes are situational, and torpedoes need aft view.</p></div>
+      <div class="req"><span class="id">OPEN-4</span><p><b>Radar availability.</b> The radar is hidden while anyone is speaking. Whether that cost is acceptable needs play.</p></div>
+      <div class="req"><span class="id">OPEN-5</span><p><b>Centre console crowding.</b> The centre console holds two button columns and two displays. On a notched phone the four buttons are 47 by 36, the radar and target scope are about 62 px square, and the subsystem arrows are about 31 by 24.</p></div>
+      <div class="req"><span class="id">OPEN-6</span><p><b>Live deployment.</b> The public site serves the working folder directly, so unfinished edits are visible as they are made. There is no separate release step.</p></div>
+      <div class="req"><span class="id">OPEN-7</span><p><b>Device testing.</b> Everything has been tested in a headless desktop browser at phone size. Touch feel, frame rate, audio start and the zoom lock on real iPhone and iPad hardware are unconfirmed.</p></div>
+      <div class="req"><span class="id">OPEN-8</span><p><b>Score trust.</b> Scores are submitted by the browser and are not verified. Fine on a private network, not beyond.</p></div>
+    </div>
+  </section>
+</div>
+
+<script>
+// p = pin position, t = point the leader ends on (omit for no leader); both in the 844 x 390 screenshot's CSS pixels.
+const COCKPIT = [
+  { g: 'On the glass', items: [
+    { n: 1, s: 'real', name: 'Gunsight and lock diamond', p: [540, 62], t: [479, 106],
+      d: 'The crosshair is where your weapons point. When a hostile is within about 7&deg; of it and 650 units, the crosshair turns white and that target gets a red diamond, with its range in large digits underneath and its type below that. Lasers and torpedoes then lead that ship for you. This lock is automatic; choosing a target by tapping is separate (see Targeting). In aft view the sight changes to <b>-- --</b>.' },
+    { n: 2, s: 'real', name: 'Target bracket', p: [244, 52], t: [283, 85],
+      d: 'Red, drawn around every hostile on the glass and sized by distance. Tap one to make it your chosen target. The base gets a dim green bracket with its range in large digits and the label BASE, so red always means hostile.' },
+    { n: 3, s: 'real', name: 'Off-glass arrow', p: [748, 120], t: [700, 150],
+      d: 'One per hostile (red) and the base (dim green) you cannot see, including any hidden behind the dashboard. It points the way to turn. <b>Hollow</b> means ahead but off the glass, <b>solid</b> means behind you.' },
+    { n: 4, s: 'real', name: 'Enemy shot', p: [590, 104], t: [545, 142],
+      d: 'Red spinning diamonds. A hit costs 13 shield and stops the shields recharging for 4 seconds. They travel at 130, so they can be dodged but not outrun by boosting. Your lasers can shoot them down (for no score), and a torpedo blast clears them.' },
+    { n: 5, s: 'part', name: 'Stars, dust and planet', p: [110, 150],
+      d: 'Everything else outside. Stars and the wireframe planet (some sectors have one) are backdrop: fixed at infinity, no collision, nothing to reach. The short dust streaks do show your heading and speed, and stretch during a warp.' },
+    { n: 6, s: 'real', name: 'Pause', p: [778, 25],
+      d: 'Small dim button in the upper-right corner, the one control that is not part of the dashboard. Stops everything, including the fleets. Holds the settings: invert Y, sound, glow, quit.' },
+  ]},
+  { g: 'Left console', items: [
+    { n: 7, s: 'real', name: 'Flight stick', p: [16, 236], t: [31, 250],
+      d: 'Pitch and yaw. You do not have to touch the stick itself: a thumb anywhere on the left 46% of the screen drives it. In aft view, stick up still moves the view up. INVERT Y is in the pause menu.' },
+    { n: 8, s: 'part', name: 'Energy bar (thruster icon)', p: [157, 231],
+      d: 'The energy tank, which is your fuel for everything. Boost costs 2.5 per second, shield recharge 0.6 per second, recharging the laser about 0.12 per shot, a warp 4 per sector. At zero you lose boost, shield recharge and laser recharge. Only docking refills it. Flashes red under 25. If you cannot afford a jump you can still make an emergency jump to a base, which empties the tank and the shields, burns out one system and takes twice as long. Despite the icon it does not show engine damage.' },
+    { n: 9, s: 'real', name: 'Shield bar (shield icon)', p: [183, 231],
+      d: 'Absorbs hits: 13 per shot, 25 for a collision (one hit per pass). Recharges 2.5 per second from the energy tank, but only after 4 seconds without being hit. A hit much bigger than what is left carries through to the hull. At zero, each further hit knocks out radar, comms or engine at random, and a hit with all three out destroys the ship.' },
+    { n: 10, s: 'real', name: 'Weapon bar (icon follows the weapon)', p: [209, 231],
+      d: 'Readiness of the selected weapon. <b>Laser</b> (bolt): capacitor charge, 3 per shot, refilling 9 per second. <b>Missile</b> (rocket, shown here with 6 of 8): rounds left. <b>Torpedo</b> (spiked mine): rounds left of 3. Docking refills all three.' },
+  ]},
+  { g: 'Centre console', items: [
+    { n: 11, s: 'real', name: 'TARGET NEXT / PREV', p: [280, 243], t: [280, 268],
+      d: 'Step through the hostiles in the sector and then the station, wrapping round. With nothing chosen, either button picks the nearest hostile. Dimmed when there is nothing to target. Tapping a ship on the glass does the same job directly.' },
+    { n: 12, s: 'part', name: 'Radar scope', p: [359, 243], t: [359, 264],
+      d: 'Top-down view, you in the centre, nose up, 600 units to the rim (inner ring 300). <b>Red squares</b> are hostiles, with a tick up or down if they are well above or below you. <b>Small white specks</b> are enemy shots, which vanish when the last hostile dies. A <b>ring</b> is the base. The small triangle on the rim shows which way you are looking: top for fore, bottom for aft. Goes to static if the radar is damaged, and gives way to a talking head while someone is speaking to you. Choosing a target does not hide it. The rotating sweep line is decoration.' },
+    { n: 13, s: 'real', name: 'Target scope', p: [453, 243], t: [453, 264],
+      d: 'Reads NO TARGET until you choose one, then shows its wireframe and subsystems (see Targeting).' },
+    { n: 14, s: 'real', name: 'VIEW', p: [578, 288],
+      d: 'Flips between fore and aft view and reads which one you are in. Weapons fire the way you are looking, so aft view gives you rear guns. The ship keeps flying forward. A warp puts you back in fore view.' },
+    { n: 15, s: 'real', name: 'SCAN', p: [578, 330],
+      d: 'Opens the nav computer. Flashes white while any fleet is sitting on one of your bases.' },
+  ]},
+  { g: 'Right console', items: [
+    { n: 16, s: 'real', name: 'WEAPON selector', p: [630, 229],
+      d: 'Tap to cycle laser, missile, torpedo. Shows the selected weapon and rounds left (&infin; for the laser). <b>Missiles</b> home on your chosen target, else the locked ship, else whatever is ahead: one kills a raider or a saucer, a shielded cruiser takes about four. <b>Torpedoes</b> launch in aft view only, are unguided, and burst near a target, damaging everything within about 48 units: enough to kill a cruiser in the inner half once its shield is down.' },
+    { n: 17, s: 'real', name: 'Throttle rocker: FASTER / SLOWER', p: [692, 229],
+      d: '<b>Tap</b> either half to step the speed setting by 10, from 0 to 50. It starts at 40 and holds until changed. <b>Hold FASTER</b> to boost to 95 at 2.5 energy per second, dropping back when released. <b>Hold SLOWER</b> for a full stop. SLOWER dims and does nothing once you are stopped. While docked the top half reads LAUNCH, and flashes once repair and rearm are done (1.3 s). You cannot dock while hostiles are in the sector, and you are launched if they arrive.' },
+    { n: 18, s: 'real', name: 'Speed tape', p: [728, 229],
+      d: 'Current speed as a fill from the bottom: empty is stopped, full is boost speed. The side ticks mark your throttle setting, and any segments above them light white, which is what boosting looks like.' },
+    { n: 19, s: 'real', name: 'FIRE', p: [832, 244], t: [817, 262],
+      d: 'Fires the selected weapon while held. Lasers: about 7.7 shots per second until the capacitor runs down after roughly 7 seconds, then about 3 per second. Every hit also damages one subsystem of the ship it lands on. Missiles: one every 0.5 s. Torpedoes: one every 1.3 s, refused in fore view. Disabled while docked.' },
+  ]},
+  { g: 'Bottom edge and structure', items: [
+    { n: 20, s: 'real', name: 'Subspace radio', p: [826, 376],
+      d: 'Full-width teletype under the consoles. Routine traffic scrolls in amber: your sector, hostiles here, fleets at large, each station and whether it is under attack, and any damaged system. With comms damaged it reports only your own sector. Alerts interrupt it, typing on in red and holding. When someone hails you the whole strip becomes their channel, shown in the comms section below.' },
+    { n: 21, s: 'dress', name: 'Dashboard outline, seams, scanlines', p: [560, 222], t: [588, 236],
+      d: 'The console shape, the dim seams beside the centre panel and the faint scanlines over the whole screen are drawn for looks. The dashboard does hide whatever is behind it, so it costs you some view.' },
+  ]},
+];
+const TARGET = [
+  { g: 'On the glass', items: [
+    { n: 1, s: 'real', name: 'Chosen-target bracket', p: [560, 40], t: [522, 48],
+      d: 'Tap a ship or the station to choose it. It gains a second, white bracket outside the red one. Tap it again to let go. Here the cruiser is both chosen (white bracket) and auto-locked (red diamond).' },
+    { n: 2, s: 'real', name: 'Range and name', p: [532, 198], t: [482, 196],
+      d: 'The chosen target always shows its range in large digits and its type, whether or not the lasers are locked on it. If it leaves the glass, its edge arrow turns white.' },
+  ]},
+  { g: 'Target scope (beside the radar)', items: [
+    { n: 3, s: 'real', name: 'Wireframe', p: [453, 243], t: [453, 264],
+      d: 'A slowly turning wireframe of the chosen ship or station, drawn from the same model you see in space. Tapping the wireframe releases the target. The radar stays in view beside it.' },
+    { n: 4, s: 'real', name: 'Subsystem markers', p: [516, 248], t: [470, 290],
+      d: 'Three squares on the hull: WEAPON at the nose, SHIELD amidships, ENGINE at the tail. Green is intact, amber damaged, red destroyed. The selected one has a flashing white box. This cruiser has a damaged shield (selected) and a destroyed engine.' },
+    { n: 5, s: 'real', name: 'Subsystem selector', p: [406, 234], t: [407, 338],
+      d: 'The two arrows along the bottom step through HULL, WEAPON, SHIELD and ENGINE; the line at the top of the scope names the item and shows it as a percentage, or OUT. With a subsystem selected, 80% of your hits on this ship land on it. Weapon out: it cannot fire. Engine out: it crawls at a quarter speed. Shield up: it soaks half of all hull damage, so stripping it first pays off on a cruiser. For a station the scope shows hull only.' },
+    { n: 6, s: 'real', name: 'TARGET NEXT / PREV', p: [280, 243], t: [280, 268],
+      d: 'Step to the next or previous target without taking a thumb off the console. The order is the hostiles in the sector, then the station.' },
+  ]},
+];
+const COMMS = [
+  { g: 'While someone is speaking', items: [
+    { n: 1, s: 'part', name: 'Talking head', p: [359, 243], t: [359, 264],
+      d: 'Replaces the radar for as long as the caller speaks, opening with a burst of static. A caller waits up to 4 seconds for an alert to clear first, and the radar stays up while they wait. Green for your stations, red for the raider leader. The three station heads are friendly robots of different shapes: square with one antenna, round with two feelers and a headset, and wide with a speaker grille. The mouth moves with the speech. It shows who is calling at a glance, but you have no radar until they finish. The target scope beside it stays up.' },
+    { n: 2, s: 'real', name: 'Caller name', p: [96, 347], t: [96, 363],
+      d: 'The SUBSPACE RADIO label changes to whoever is speaking and turns red for a hostile caller. It changes back when the channel closes.' },
+    { n: 3, s: 'real', name: 'What they are saying', p: [826, 376],
+      d: 'Their words type out on the tape in place of the routine radio traffic, with a blip per syllable. Long lines slide left so the newest words stay in view. Only red alerts such as SHIELDS DOWN cut in over a caller. With comms damaged, nobody can hail you at all.' },
+  ]},
+];
+const MAP = [
+  { g: 'The map', items: [
+    { n: 1, s: 'real', name: 'Sector grid', p: [100, 128], t: [160, 128],
+      d: 'Eight by six sectors. Tap any cell to select it as a warp target.' },
+    { n: 2, s: 'real', name: 'Base and health bar', p: [432, 100], t: [403, 120],
+      d: 'Your three bases. The bar under each is its health. The icon flashes red while a fleet is on it. With comms damaged the bar goes empty and nothing flashes, because no status is coming in. Losing HOME ends the game; the other two can be lost, at the cost of their wave-clear bonus and a place to dock.' },
+    { n: 3, s: 'real', name: 'Enemy fleet', p: [592, 272], t: [566, 290],
+      d: 'One wedge per ship, so you can count them before you jump. A larger wedge is a cruiser. Hidden when COM is damaged, except in your own sector.' },
+    { n: 4, s: 'real', name: 'Fleet heading', p: [462, 162], t: [500, 139],
+      d: 'Dotted red line from each fleet to the base it is going for. Fleets move one sector every 20 seconds in wave 1, faster in later waves. Time skipped by your own warps moves them too, and wears down any base they are sitting on.' },
+    { n: 5, s: 'real', name: 'You', p: [178, 212], t: [204, 226],
+      d: 'The blinking white bracket is your current sector.' },
+    { n: 6, s: 'real', name: 'Selected target and jump line', p: [505, 218], t: [528, 206],
+      d: 'The boxed cell is the selection. The dashed green line shows the jump from where you are.' },
+  ]},
+  { g: 'Side panel and frame', items: [
+    { n: 7, s: 'real', name: 'Target readout', p: [686, 60],
+      d: 'What is in the selected sector, then the jump distance, its energy cost and the time it adds. COST turns red if you cannot afford it. If the target is a base you cannot afford, it offers an emergency jump instead and lists what that costs. Your energy and shield are repeated below, and UNDER ATTACK flashes while hostiles are in your sector.' },
+    { n: 8, s: 'real', name: 'WARP', p: [688, 345],
+      d: 'Jumps to the selection. Greyed out when the target is your own sector, or you lack the energy and the target is not a base.' },
+    { n: 9, s: 'real', name: 'COCKPIT', p: [688, 282],
+      d: 'Returns to the cockpit. The fight has been running the whole time.' },
+    { n: 10, s: 'part', name: 'Header line', p: [386, 22],
+      d: 'Wave, score and date. This is the only place they show during play now that they are off the cockpit. The date is a readout only: nothing in the game checks it.' },
+    { n: 11, s: 'dress', name: 'Bezel and ghost view', p: [42, 360], t: [12, 381],
+      d: 'The double frame and the NAV COMPUTER title make the map read as a cockpit screen. The faint cockpit view showing through is the live 3D scene.' },
+  ]},
+];
+
+const NS = 'http://www.w3.org/2000/svg', LABEL = { real: 'Real', part: 'Partly', dress: 'Dressing' };
+function build(key, groups) {
+  const shot = document.getElementById('shot-' + key), legend = document.getElementById('legend-' + key);
+  const svg = document.createElementNS(NS, 'svg'); svg.setAttribute('viewBox', '0 0 844 390');
+  const pick = (n, on) => document.querySelectorAll(`[data-k="${key}-${n}"]`).forEach(el => el.classList.toggle('on', on));
+  for (const grp of groups) {
+    const box = document.createElement('div'); box.className = 'group';
+    box.innerHTML = `<h3>${grp.g}</h3>`;
+    const ul = document.createElement('ul'); ul.className = 'items';
+    for (const it of grp.items) {
+      const g = document.createElementNS(NS, 'g'); g.setAttribute('class', 'pin ' + it.s); g.dataset.k = `${key}-${it.n}`;
+      g.setAttribute('tabindex', '0'); g.setAttribute('role', 'link'); g.setAttribute('aria-label', `${it.n}: ${it.name}`);
+      if (it.t) {                       // leader stops at the edge of the pin
+        const dx = it.t[0] - it.p[0], dy = it.t[1] - it.p[1], d = Math.hypot(dx, dy) || 1, ln = document.createElementNS(NS, 'line');
+        ln.setAttribute('x1', it.p[0] + dx / d * 9); ln.setAttribute('y1', it.p[1] + dy / d * 9); ln.setAttribute('x2', it.t[0]); ln.setAttribute('y2', it.t[1]); g.appendChild(ln);
+      }
+      const c = document.createElementNS(NS, 'circle'); c.setAttribute('cx', it.p[0]); c.setAttribute('cy', it.p[1]); c.setAttribute('r', 9);
+      const tx = document.createElementNS(NS, 'text'); tx.setAttribute('x', it.p[0]); tx.setAttribute('y', it.p[1] + 0.5); tx.textContent = it.n;
+      g.append(c, tx); svg.appendChild(g);
+      const li = document.createElement('li'); li.className = 'item'; li.id = `${key}-${it.n}`; li.dataset.k = `${key}-${it.n}`;
+      li.innerHTML = `<span class="num ${it.s}">${it.n}</span><div class="head"><span class="name">${it.name}</span><span class="tag ${it.s}">${LABEL[it.s]}</span></div><div class="desc">${it.d}</div>`;
+      ul.appendChild(li);
+      const go = () => li.scrollIntoView({ block: 'center', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+      g.addEventListener('click', go); g.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } });
+      for (const el of [g, li]) { el.addEventListener('pointerenter', () => pick(it.n, true)); el.addEventListener('pointerleave', () => pick(it.n, false)); }
+      g.addEventListener('focus', () => pick(it.n, true)); g.addEventListener('blur', () => pick(it.n, false));
+    }
+    box.appendChild(ul); legend.appendChild(box);
+  }
+  shot.appendChild(svg);
+}
+build('c', COCKPIT); build('t', TARGET); build('k', COMMS); build('m', MAP);
+</script>
+</body>
+</html>
