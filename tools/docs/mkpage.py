@@ -74,6 +74,8 @@ mapd = rep(mapd, "Your energy and shield are repeated below.", "Your energy and 
 mapd = rep(mapd, "Losing HOME ends the game; the other two can be lost.", "Losing HOME ends the game; the other two can be lost, at the cost of their wave-clear bonus and a place to dock.")
 
 css = css.replace("</style>", """.toc{display:flex;flex-wrap:wrap;gap:6px 16px;font-family:var(--mono);font-size:12px;letter-spacing:.06em}
+.play{color:var(--real);text-decoration:none;border-bottom:1px solid var(--line)}
+.play:hover,.play:focus-visible{border-bottom-color:var(--real);outline:none}
 .toc a{color:var(--real);text-decoration:none;border-bottom:1px solid var(--line)}
 .toc a:hover,.toc a:focus-visible{border-bottom-color:var(--real);outline:none}
 .reqs{display:flex;flex-direction:column}
@@ -99,6 +101,7 @@ page = f"""<title>Starguard Requirements</title>
     <div class="eyebrow">Starguard prototype &middot; requirements</div>
     <h1>Starguard Requirements</h1>
     <p>What the game must do, written from the build as it stands at commit <code>{COMMIT}</code>. Each requirement has an ID so it can be referred to and changed on its own. The cockpit section keeps the annotated screenshots as the interface specification.</p>
+    <p>Play the current build: <a class="play" href="https://thoracle.github.io/starguard/">thoracle.github.io/starguard</a> &middot; source: <a class="play" href="https://github.com/thoracle/starguard">github.com/thoracle/starguard</a></p>
     <p class="hint">Numbers are the current tuning values and are expected to move. Rules stated without a number are intended to hold.</p>
     <nav class="toc" aria-label="Sections">{open('req_nav.html').read()} <a href="#ui">Cockpit interface</a> <a href="#tuning">Tuning values</a> <a href="#open">Open questions</a></nav>
   </header>
