@@ -87,9 +87,9 @@ section{scroll-margin-top:12px}
   <header>
     <div class="eyebrow">Starguard prototype &middot; requirements</div>
     <h1>Starguard Requirements</h1>
-    <p>What the game must do, written from the build as it stands at commit <code>d4a1cd1</code>. Each requirement has an ID so it can be referred to and changed on its own. The cockpit section keeps the annotated screenshots as the interface specification.</p>
+    <p>What the game must do, written from the build as it stands at commit <code>6d9f697</code>. Each requirement has an ID so it can be referred to and changed on its own. The cockpit section keeps the annotated screenshots as the interface specification.</p>
     <p class="hint">Numbers are the current tuning values and are expected to move. Rules stated without a number are intended to hold.</p>
-    <nav class="toc" aria-label="Sections"><a href="#gam">Purpose and scope</a> <a href="#plt">Platform and constraints</a> <a href="#flt">Flight</a> <a href="#wpn">Weapons</a> <a href="#tgt">Targeting and subsystems</a> <a href="#enm">Enemies</a> <a href="#sys">Ship systems and damage</a> <a href="#str">Sectors, fleets and stations</a> <a href="#wrp">Nav computer and warp</a> <a href="#dck">Docking</a> <a href="#com">Comms</a> <a href="#aud">Audio</a> <a href="#srv">Scores and server</a> <a href="#ui">Cockpit interface</a> <a href="#tuning">Tuning values</a> <a href="#open">Open questions</a></nav>
+    <nav class="toc" aria-label="Sections"><a href="#gam">Purpose and scope</a> <a href="#plt">Platform and constraints</a> <a href="#flt">Flight</a> <a href="#wpn">Weapons</a> <a href="#tgt">Targeting and subsystems</a> <a href="#enm">Enemies</a> <a href="#sys">Ship systems and damage</a> <a href="#str">Sectors, fleets and stations</a> <a href="#wrp">Nav computer and warp</a> <a href="#dck">Docking</a> <a href="#com">Comms</a> <a href="#aud">Audio</a> <a href="#srv">Server</a> <a href="#ui">Cockpit interface</a> <a href="#tuning">Tuning values</a> <a href="#open">Open questions</a></nav>
   </header>
 
   <section id="gam">
@@ -110,7 +110,7 @@ section{scroll-margin-top:12px}
     <h2>Platform and constraints</h2>
     <p class="hint">What it must run on and what it may be built from.</p>
     <div class="reqs">
-      <div class="req"><span class="id">PLT-1</span><p>The game is one HTML page using vanilla JavaScript and three.js, served by a small Python Flask app. No Node.js and no build step.</p></div>
+      <div class="req"><span class="id">PLT-1</span><p>The game is one static HTML page using vanilla JavaScript and three.js. It needs no server-side code; a small Python Flask app serves it for local and test use. No Node.js and no build step.</p></div>
       <div class="req"><span class="id">PLT-2</span><p>The primary target is an iPhone-size screen in landscape. It must also run in a desktop browser. Layouts must hold from about 640 px wide upward; narrower screens are not supported.</p></div>
       <div class="req"><span class="id">PLT-3</span><p>All controls are touch controls sized for thumbs. Every control also has a keyboard equivalent for desktop testing.</p></div>
       <div class="req"><span class="id">PLT-4</span><p>The layout must respect the device safe areas (notch and home indicator), and the drawn dashboard and the touch controls must take those insets from a single reading so they cannot drift apart.</p></div>
@@ -270,15 +270,13 @@ section{scroll-margin-top:12px}
   </section>
 
   <section id="srv">
-    <h2>Scores and server</h2>
+    <h2>Server</h2>
     <p class="hint">What the Flask app does.</p>
     <div class="reqs">
-      <div class="req"><span class="id">SRV-1</span><p>The server serves the game page uncached and nothing else from the project folder.</p></div>
-      <div class="req"><span class="id">SRV-2</span><p>GET /api/scores returns the top 10 scores. POST /api/scores adds one and returns the new top 10.</p></div>
-      <div class="req"><span class="id">SRV-3</span><p>A score entry is up to three letters or digits (default ACE), a score from 0 to 10,000,000 and a wave from 0 to 999. Anything else is rejected with a 400. The server keeps the top 50 in a JSON file.</p></div>
-      <div class="req"><span class="id">SRV-4</span><p>The game-over screen shows the final score and wave, the score table, and a field to save initials. It confirms a save, reports a failed one, and cannot be dismissed in its first 1.2 seconds.</p></div>
-      <div class="req"><span class="id">SRV-5</span><p>The server address and port come from the HOST and PORT environment variables when run directly.</p></div>
-      <div class="req"><span class="id">SRV-6</span><p>The game is deployed at https://dev.retroverse.ai/starguard/ as a systemd service running gunicorn with one worker on port 5079, behind nginx, with the score endpoint rate-limited. The page uses only relative URLs so it works under a path prefix.</p></div>
+      <div class="req"><span class="id">SRV-1</span><p>The server serves the game page uncached and nothing else. It has no API and stores nothing.</p></div>
+      <div class="req"><span class="id">SRV-2</span><p>The game-over screen shows why the run ended, the final score and the wave reached. It cannot be dismissed in its first 1.2 seconds. Scores are not saved and there is no high-score table.</p></div>
+      <div class="req"><span class="id">SRV-3</span><p>The server address and port come from the HOST and PORT environment variables when run directly.</p></div>
+      <div class="req"><span class="id">SRV-4</span><p>The public build is published with GitHub Pages from the master branch at https://thoracle.github.io/starguard/. A separate test build runs on the dev box as a systemd service (gunicorn on port 5079) behind nginx, serving the working folder live.</p></div>
     </div>
   </section>
 
@@ -357,9 +355,8 @@ section{scroll-margin-top:12px}
       <div class="req"><span class="id">OPEN-3</span><p><b>Laser dominance.</b> The auto-aimed laser is the right answer in most situations. Missiles and torpedoes are situational, and torpedoes need aft view.</p></div>
       <div class="req"><span class="id">OPEN-4</span><p><b>Radar availability.</b> The radar is hidden while anyone is speaking. Whether that cost is acceptable needs play.</p></div>
       <div class="req"><span class="id">OPEN-5</span><p><b>Centre console crowding.</b> The centre console holds two button columns and two displays. On a notched phone the four buttons are 47 by 36, the radar and target scope are about 62 px square, and the subsystem arrows are about 31 by 24.</p></div>
-      <div class="req"><span class="id">OPEN-6</span><p><b>Live deployment.</b> The public site serves the working folder directly, so unfinished edits are visible as they are made. There is no separate release step.</p></div>
+      <div class="req"><span class="id">OPEN-6</span><p><b>Live test box.</b> The dev box serves the working folder directly, so unfinished edits are visible there as they are made. The public GitHub Pages build only changes on a push.</p></div>
       <div class="req"><span class="id">OPEN-7</span><p><b>Device testing.</b> Everything has been tested in a headless desktop browser at phone size. Touch feel, frame rate, audio start and the zoom lock on real iPhone and iPad hardware are unconfirmed.</p></div>
-      <div class="req"><span class="id">OPEN-8</span><p><b>Score trust.</b> Scores are submitted by the browser and are not verified. Fine on a private network, not beyond.</p></div>
     </div>
   </section>
 </div>

@@ -15,7 +15,7 @@ SECTIONS = [
  "This is a prototype for finding the fun. Tuning values in this document are the current settings and are expected to change; they all live in one tuning block in the game file.",
 ]),
 ("Platform and constraints", "PLT", "What it must run on and what it may be built from.", [
- "The game is one HTML page using vanilla JavaScript and three.js, served by a small Python Flask app. No Node.js and no build step.",
+ "The game is one static HTML page using vanilla JavaScript and three.js. It needs no server-side code; a small Python Flask app serves it for local and test use. No Node.js and no build step.",
  "The primary target is an iPhone-size screen in landscape. It must also run in a desktop browser. Layouts must hold from about 640 px wide upward; narrower screens are not supported.",
  "All controls are touch controls sized for thumbs. Every control also has a keyboard equivalent for desktop testing.",
  "The layout must respect the device safe areas (notch and home indicator), and the drawn dashboard and the touch controls must take those insets from a single reading so they cannot drift apart.",
@@ -122,13 +122,11 @@ SECTIONS = [
  "An engine hum follows the ship's speed.",
  "Sound can be turned off in the pause menu. Audio must start on the first touch on iOS.",
 ]),
-("Scores and server", "SRV", "What the Flask app does.", [
- "The server serves the game page uncached and nothing else from the project folder.",
- "GET /api/scores returns the top 10 scores. POST /api/scores adds one and returns the new top 10.",
- "A score entry is up to three letters or digits (default ACE), a score from 0 to 10,000,000 and a wave from 0 to 999. Anything else is rejected with a 400. The server keeps the top 50 in a JSON file.",
- "The game-over screen shows the final score and wave, the score table, and a field to save initials. It confirms a save, reports a failed one, and cannot be dismissed in its first 1.2 seconds.",
+("Server", "SRV", "What the Flask app does.", [
+ "The server serves the game page uncached and nothing else. It has no API and stores nothing.",
+ "The game-over screen shows why the run ended, the final score and the wave reached. It cannot be dismissed in its first 1.2 seconds. Scores are not saved and there is no high-score table.",
  "The server address and port come from the HOST and PORT environment variables when run directly.",
- "The game is deployed at https://dev.retroverse.ai/starguard/ as a systemd service running gunicorn with one worker on port 5079, behind nginx, with the score endpoint rate-limited. The page uses only relative URLs so it works under a path prefix.",
+ "The public build is published with GitHub Pages from the master branch at https://thoracle.github.io/starguard/. A separate test build runs on the dev box as a systemd service (gunicorn on port 5079) behind nginx, serving the working folder live.",
 ]),
 ]
 OPEN = [
@@ -137,9 +135,8 @@ OPEN = [
  ("Laser dominance", "The auto-aimed laser is the right answer in most situations. Missiles and torpedoes are situational, and torpedoes need aft view."),
  ("Radar availability", "The radar is hidden while anyone is speaking. Whether that cost is acceptable needs play."),
  ("Centre console crowding", "The centre console holds two button columns and two displays. On a notched phone the four buttons are 47 by 36, the radar and target scope are about 62 px square, and the subsystem arrows are about 31 by 24."),
- ("Live deployment", "The public site serves the working folder directly, so unfinished edits are visible as they are made. There is no separate release step."),
+ ("Live test box", "The dev box serves the working folder directly, so unfinished edits are visible there as they are made. The public GitHub Pages build only changes on a push."),
  ("Device testing", "Everything has been tested in a headless desktop browser at phone size. Touch feel, frame rate, audio start and the zoom lock on real iPhone and iPad hardware are unconfirmed."),
- ("Score trust", "Scores are submitted by the browser and are not verified. Fine on a private network, not beyond."),
 ]
 TUNING = [
  ("Speeds", "cruise 40 &middot; boost 95 &middot; throttle step 10, max 50 &middot; turn 1.55 rad/s"),

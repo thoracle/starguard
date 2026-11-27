@@ -2,13 +2,13 @@
 
 A first-person space shooter in an 80s vector-arcade style, built as a prototype to find the fun. You fly one ship from a cockpit, fight raider fleets, and use a sector map to decide where to fight. It targets an iPhone-size screen in landscape with touch controls, and also runs in a desktop browser.
 
-**Play:** https://dev.retroverse.ai/starguard/
+**Play:** https://thoracle.github.io/starguard/
 
 ![Cockpit with a cruiser targeted](docs/requirements/target.png)
 
 ## The game
 
-- Raider fleets cross an 8 by 6 sector grid toward three stations. Lose HOME CONTROL, or your ship, and the run is over. There is no win state: the aim is score and waves survived.
+- Raider fleets cross an 8 by 6 sector grid toward three stations. Lose HOME CONTROL, or your ship, and the run is over. There is no win state: the aim is score and waves survived. Your score is shown when the run ends; it is not saved.
 - SCAN opens the nav computer. Tap a sector and WARP there. Jumps cost energy and time, and the fight in your sector keeps running while you read the chart.
 - Lasers, homing missiles and aft-only torpedoes. Tap a ship to target it, then pick its weapon, shield or engine to concentrate your hits.
 - Fly into a station ring to refuel, repair and rearm.
@@ -47,7 +47,7 @@ python3 -m venv .venv
 | Path | What it is |
 |---|---|
 | `index.html` | The whole game: markup, styles and one JavaScript module using three.js. All tuning values sit in the `T` block at the top of the script. |
-| `app.py` | Flask app. Serves the page and a small high-score API (`GET` and `POST /api/scores`), stored in `scores.json`. |
+| `app.py` | Optional Flask app that serves the page for local and test-box use. Opening it through any static web server works too. |
 | `deploy/` | systemd unit (gunicorn on port 5079), the nginx block that mounts it at `/starguard/`, and `publish.sh`, which installs both. |
 | `docs/requirements/` | The requirements document: numbered requirements plus annotated screenshots of the cockpit, targeting, comms and nav computer. Open `index.html` in a browser. |
 | `tools/tests/` | Browser smoke scripts (Playwright). Each drives the running game and prints what it found for a person to read; they do not assert pass or fail. |
@@ -55,7 +55,9 @@ python3 -m venv .venv
 
 ## Deployment
 
-`sh deploy/publish.sh` installs the service and adds the nginx block on the dev box, then reloads nginx. It is safe to re-run. The service serves this folder directly, so edits to `index.html` are live as soon as they are saved.
+The game is a single static page, so it is published with GitHub Pages straight from the `master` branch: pushing to `master` updates https://thoracle.github.io/starguard/.
+
+`deploy/` is for our own test box, which serves the working folder through a small Flask app so edits show up as soon as they are saved. `sh deploy/publish.sh` installs that service and its nginx block; it is safe to re-run.
 
 ## Tests and tools
 
@@ -78,7 +80,7 @@ The wireframe look is a nod to the vector arcade games of the same era, Atari's 
 
 ## Status
 
-A prototype. It has been tested in a headless desktop browser at phone sizes; touch feel, frame rate and audio on real iPhone and iPad hardware are not yet confirmed. High scores are submitted by the browser and are not verified. Balance is untuned, and the open questions are listed at the end of the requirements document.
+A prototype. It has been tested in a headless desktop browser at phone sizes; touch feel, frame rate and audio on real iPhone and iPad hardware are not yet confirmed. Balance is untuned, and the open questions are listed at the end of the requirements document.
 
 ## Licence
 

@@ -86,11 +86,7 @@ h2{margin:0;font-size:clamp(20px,7vh,40px);letter-spacing:.18em;font-weight:norm
   text-shadow:0 0 5px var(--g);box-shadow:0 0 10px rgba(57,255,106,.45)}
 .tb:active{background:rgba(57,255,106,.4);color:#fff}
 .row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;align-items:center}
-#hi,#hi2{font-size:11px;line-height:1.4;white-space:pre;opacity:.85;min-height:14px}
-#ini{width:84px;background:#000;border:2px solid var(--g);color:#fff;text-align:center;border-radius:6px;
-  font:bold 20px "Courier New",monospace;letter-spacing:4px;padding:6px;text-transform:uppercase;
-  -webkit-user-select:text;user-select:text;outline:none}
-@media (max-height:380px){#bWarp{height:48px}#bBack{height:34px;bottom:calc(var(--sb) + 70px)}.ov{gap:5px}.how{font-size:10px;line-height:1.4}.tb{padding:8px 22px}#hi,#hi2{font-size:10px;line-height:1.25}}
+@media (max-height:380px){#bWarp{height:48px}#bBack{height:34px;bottom:calc(var(--sb) + 70px)}.ov{gap:5px}.how{font-size:10px;line-height:1.4}.tb{padding:8px 22px}}
 #rot{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:#000;
   font-size:18px;letter-spacing:.2em;text-align:center;z-index:9}
 @media (orientation:portrait) and (max-width:700px){#rot{display:flex}}
@@ -131,7 +127,6 @@ h2{margin:0;font-size:clamp(20px,7vh,40px);letter-spacing:.18em;font-weight:norm
     <b>Left thumb</b> steers &middot; <b>FIRE</b> the selected weapon &middot; <b>FASTER / SLOWER</b>: tap for speed, hold for boost or stop<br>
     <b>Tap a ship</b> to target it &middot; <b>VIEW</b> looks aft (torpedoes drop aft) &middot; fly into a station ring to dock
   </div>
-  <div id="hi"></div>
 </div>
 
 <div id="ovPause" class="ov">
@@ -151,12 +146,7 @@ h2{margin:0;font-size:clamp(20px,7vh,40px);letter-spacing:.18em;font-weight:norm
   <h2 style="color:var(--r)">GAME OVER</h2>
   <div id="why" class="sub"></div>
   <div id="fin" style="font-size:18px;letter-spacing:.15em"></div>
-  <div class="row" id="saveRow">
-    <input id="ini" maxlength="3" value="ACE" autocomplete="off" autocapitalize="characters" spellcheck="false">
-    <div class="tb" id="bSave">SAVE SCORE</div>
-  </div>
   <div class="tb" id="bAgain">PLAY AGAIN</div>
-  <div id="hi2"></div>
 </div>
 
 <div id="rot">ROTATE DEVICE<br>TO LANDSCAPE</div>
@@ -485,7 +475,7 @@ tap('bSubP', () => cycleSub(-1)); tap('bSubN', () => cycleSub(1)); tap('bTgt', (
 tap('bWpn', cycleWeapon); tap('bView', toggleView); tap('bMap', openMap); tap('bBack', closeMap); tap('bWarp', tryWarp);
 tap('bPause', () => { S.prev = S.mode; setMode('pause'); });
 tap('bResume', () => setMode(S.prev));
-tap('bQuit', () => { clearSector(); setMode('title'); loadScores(); });
+tap('bQuit', () => { clearSector(); setMode('title'); });
 tap('bStart', startGame); tap('bAgain', startGame);
 const store = (k, v) => { try { localStorage.setItem(k, v); } catch (_) {} };   // private browsing can refuse writes
 tap('bInv', () => { S.invY = !S.invY; store('sg_inv', S.invY ? '1' : '0'); labels(); });
@@ -503,7 +493,6 @@ $('mz').addEventListener('pointerdown', e => {
 });
 
 window.addEventListener('keydown', e => {
-  if (e.target === $('ini')) { if (e.key === 'Enter' || e.code === 'Enter') saveScore(); return; }
   keys[e.code] = true; unlockAudio();
   if (e.code === 'KeyQ' && !e.repeat) cycleWeapon();
   if (e.code === 'KeyV' && !e.repeat) toggleView();
@@ -525,12 +514,11 @@ window.addEventListener('keydown', e => {
   if (e.code.startsWith('Arrow') || e.code === 'Space') e.preventDefault();
 });
 window.addEventListener('keyup', e => { keys[e.code] = false; });
-document.addEventListener('touchmove', e => { if (e.target !== $('ini')) e.preventDefault(); }, { passive: false });
+document.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
 // --- iOS/iPadOS ignores user-scalable=no, so block every route into page zoom ourselves.
 // All controls listen on pointerdown, which still fires when the touch default is cancelled.
-const isField = e => e.target === $('ini');
-document.addEventListener('touchstart', e => { if (!isField(e)) e.preventDefault(); }, { passive: false });   // kills double-tap zoom and pinch start
-document.addEventListener('touchend', e => { if (!isField(e)) e.preventDefault(); }, { passive: false });
+document.addEventListener('touchstart', e => e.preventDefault(), { passive: false });   // kills double-tap zoom and pinch start
+document.addEventListener('touchend', e => e.preventDefault(), { passive: false });
 document.addEventListener('dblclick', e => e.preventDefault());
 for (const g of ['gesturestart', 'gesturechange', 'gestureend']) document.addEventListener(g, e => e.preventDefault());
 document.addEventListener('wheel', e => { if (e.ctrlKey) e.preventDefault(); }, { passive: false });           // trackpad pinch
@@ -1536,7 +1524,7 @@ function drawHUD(dt) {
 // =====================================================================
 function startGame() {
   if (S.mode === 'over' && S.time - S.overT < 1.2) return;      // a key or tap meant for the game must not skip the result
-  unlockAudio(); $('ini').blur(); saving = false;
+  unlockAudio();
   Object.assign(S, { score: 0, wave: 0, date: 0, energy: 100, shield: 100, pr: 0, yr: 0, fireCD: 0, dockCD: 0,
                      shake: 0, flash: 0, wflash: 0, waveT: 0, sel: null, msgT: 0, wpn: 0, charge: 100, comm: null, commQ: [], lowHail: false, shieldT: 0, dockWarn: 0, jumped: true, warpTo: null, lock: null, target: null, subI: 0 });
   S.sys = { RAD: 1, COM: 1, ENG: 1 }; S.ammo = { m: 8, t: 3 }; wpnLabel();
@@ -1550,27 +1538,9 @@ function startGame() {
 function gameOver(why) {
   explode(ship.position.clone().addScaledVector(shipFwd(_a), 12), 14, RED); sfx.boom(true);
   $('why').textContent = why; $('fin').textContent = `SCORE ${S.score}   WAVE ${S.wave}`;
-  $('saveRow').style.display = S.score > 0 ? 'flex' : 'none'; $('bSave').textContent = 'SAVE SCORE';
   $('bMap').classList.remove('alert'); S.comm = null; S.commQ = [];
-  camera.fov = FOV; camera.updateProjectionMatrix(); camera.rotation.z = 0; S.overT = S.time; setMode('over'); loadScores();
+  camera.fov = FOV; camera.updateProjectionMatrix(); camera.rotation.z = 0; S.overT = S.time; setMode('over');
 }
-function showScores(list) {
-  const t = Array.isArray(list) && list.length ? 'HIGH SCORES\n' + list.slice(0, 5).map((s, i) =>
-    `${i + 1}. ${String(s.name).padEnd(3)} ${String(s.score).padStart(7)}  W${s.wave}`).join('\n') : '';
-  $('hi').textContent = t; $('hi2').textContent = t;
-}
-function loadScores() { fetch('api/scores').then(r => r.json()).then(showScores).catch(() => {}); }
-let saving = false;
-function saveScore() {
-  if (saving || S.mode !== 'over' || $('saveRow').style.display === 'none') return; saving = true;
-  const name = ($('ini').value || 'ACE').toUpperCase(); $('ini').blur();
-  fetch('api/scores', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, score: S.score, wave: S.wave }) })
-    .then(r => { if (!r.ok) throw new Error('rejected'); return r.json(); })
-    .then(l => { showScores(l); $('saveRow').style.display = 'none'; $('fin').textContent += '   SAVED'; })
-    .catch(() => { $('bSave').textContent = 'NOT SAVED  RETRY'; }).finally(() => { saving = false; });
-}
-tap('bSave', saveScore);
-
 // =====================================================================
 //  MAIN LOOP
 // =====================================================================
@@ -1600,7 +1570,7 @@ function frame(now) {
   drawHUD(dt);
 }
 
-resize(); labels(); wpnLabel(); setView(false); loadScores();
+resize(); labels(); wpnLabel(); setView(false);
 ship.position.set(0, 0, 0); planet.position.set(900, 200, -1300); planet.scale.setScalar(300);
 requestAnimationFrame(frame);
 

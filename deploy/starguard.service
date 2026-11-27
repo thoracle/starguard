@@ -10,7 +10,6 @@ User=dev
 WorkingDirectory=/home/dev/projects/luster
 # wait (up to 2 min) for Tailscale to have an address, then bind to it
 ExecStartPre=/bin/sh -c 'for i in $(seq 60); do /usr/bin/tailscale ip -4 >/dev/null 2>&1 && exit 0; sleep 2; done; exit 1'
-# one worker: the score file is guarded by an in-process lock
 ExecStart=/bin/sh -c 'exec /home/dev/projects/luster/.venv/bin/gunicorn -w 1 --threads 4 -b "$(/usr/bin/tailscale ip -4):5079" -b 127.0.0.1:5079 app:app'
 Restart=on-failure
 RestartSec=5
