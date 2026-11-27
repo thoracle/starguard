@@ -74,7 +74,7 @@ The scripts talk to the game at `STARGUARD_URL` (default `http://127.0.0.1:5079/
 Starguard is an original game, but it stands on two classics and owes them its shape:
 
 - **Star Raiders** (Atari, designed by Doug Neubauer for the Atari 8-bit computers), which established the form: a first-person cockpit, a galactic chart, hyperwarp between sectors, starbases to defend and dock at, and ship systems that can be knocked out.
-- **Star Luster** (Namco, 1985, Famicom), which carried that form forward and was the direct starting point for this prototype: the cockpit with radar, energy and shield readouts, the sector map with advancing enemy fleets, and bases under threat.
+- **Star Luster** (Namco, 1985, Famicom), which carried that form forward and was the direct starting point for this prototype: the cockpit with radar, energy and shield readouts.
 
 The wireframe look is a nod to the vector arcade games of the same era, Atari's Battlezone in particular. No code, art, names or audio from any of these games is used here.
 
